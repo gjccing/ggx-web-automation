@@ -1,0 +1,31 @@
+{
+  "name": "ggx-web-automation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsx src/server.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gjccing/ggx-web-automation.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gjccing/ggx-web-automation/issues"
+  },
+  "homepage": "https://github.com/gjccing/ggx-web-automation#readme",
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.61.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
