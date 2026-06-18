@@ -1,17 +1,43 @@
 import { defineConfig, devices } from '@playwright/test';
-import { defineBddConfig } from 'playwright-bdd';
+import { defineBddConfig, defineBddProject } from 'playwright-bdd';
 import dotenv from 'dotenv';
+import { discoverProjects } from './lib/discover-projects.js';
 
 dotenv.config();
 
-const testDir = defineBddConfig({
-  features: 'tests/b2b-website/features/**/*.feature',
-  steps: 'tests/b2b-website/steps/**/*.ts',
-  outputDir: '.features-gen',
-});
+const projects = discoverProjects();
+
+function featureGlobs(name: string) {
+  return [`${name}/*/*.feature`];
+}
+
+function stepGlobs(name: string) {
+  return [`${name}/*/steps/**/*.ts`];
+}
+
+const bddProjects =
+  projects.length > 0
+    ? projects.map((name) => ({
+        ...defineBddProject({
+          name,
+          features: featureGlobs(name),
+          steps: stepGlobs(name),
+        }),
+      }))
+    : [
+        {
+          name: 'no-products',
+          testDir: defineBddConfig({
+            features: '_noop/**/*.feature',
+            steps: '_noop/steps/**/*.ts',
+            outputDir: '.features-gen',
+          }),
+          testMatch: /(?!)/,
+        },
+      ];
 
 export default defineConfig({
-  testDir,
+  projects: bddProjects,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
