@@ -1,31 +1,32 @@
 {
   "name": "ggx-web-automation",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "GoGoX b2b-website E2E test automation",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsx src/server.ts"
+    "bdd:gen": "bddgen",
+    "test:e2e": "bddgen && playwright test",
+    "test:e2e:ui": "bddgen && playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:hk": "bddgen && playwright test --grep @hk",
+    "test:e2e:sg": "bddgen && playwright test --grep @sg",
+    "test:e2e:hk-zh": "bddgen && playwright test --grep \"@hk @zh\"",
+    "test:e2e:hk-en": "bddgen && playwright test --grep \"@hk @en\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gjccing/ggx-web-automation.git"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/gjccing/ggx-web-automation/issues"
   },
   "homepage": "https://github.com/gjccing/ggx-web-automation#readme",
-  "type": "module",
-  "dependencies": {
-    "playwright": "^1.61.0",
-    "zod": "^4.4.3"
-  },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
     "@types/node": "^25.9.3",
-    "tsx": "^4.22.4",
+    "dotenv": "^17.2.3",
+    "playwright-bdd": "^9.1.0",
     "typescript": "^6.0.3"
   }
 }
