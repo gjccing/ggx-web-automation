@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "postinstall": "playwright install",
-    "add-product": "node scripts/add-product.mjs",
     "bdd:gen": "bddgen",
     "test:e2e": "bddgen && playwright test --pass-with-no-tests",
     "test:e2e:ui": "bddgen && playwright test --ui",

@@ -12,7 +12,7 @@ function featureGlobs(name: string) {
 }
 
 function stepGlobs(name: string) {
-  return [`${name}/*/steps/**/*.ts`];
+  return [`${name}/*/*.steps.ts`];
 }
 
 const bddProjects =
@@ -29,7 +29,7 @@ const bddProjects =
           name: 'no-products',
           testDir: defineBddConfig({
             features: '_noop/**/*.feature',
-            steps: '_noop/steps/**/*.ts',
+            steps: '_noop/**/*.steps.ts',
             outputDir: '.features-gen',
           }),
           testMatch: /(?!)/,

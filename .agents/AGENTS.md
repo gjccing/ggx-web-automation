@@ -6,32 +6,31 @@ Cross-product Playwright + Gherkin (playwright-bdd) E2E tests for GoGoX products
 
 ```
 <project>/                    # one folder per product at repo root
-  README.md                   # product context, Jira/GitHub mapping (read this first)
+  README.md                   # metadata, Jira/GitHub mapping (read first)
+  KNOWLEDGE.md                # product flows, roles, pages (for agents)
   regression/
     *.feature
-    steps/
-_template/                    # scaffold for new products
+    *.steps.ts
+_template/                    # scaffold source for new products
 .agents/                      # agent instructions + skills
   AGENTS.md
   skills/
+    add-product/              # onboard new product
     jira-to-e2e/              # Jira → E2E tests
 ```
 
 ## Adding a product
 
-Interactive CLI (prompts for name, base URL, GitHub URL, Jira URL):
+Use the **add-product** skill (`.agents/skills/add-product/SKILL.md`). Tell the agent:
 
-```bash
-npm run add-product
-```
+- product **name** (kebab-case)
+- **url** (staging or `http://localhost:…`)
+- **github** repo URL
+- **jira** board / project URL
 
-Non-interactive (all flags required):
+The skill scaffolds from `_template/`, runs smoke E2E, explores the UI, and **keeps asking the user** for missing credentials or context until exploration is complete (multi-turn). Updates `.env` and writes `KNOWLEDGE.md`.
 
-```bash
-npm run add-product -- --name <kebab-name> --url <base-url> --github <github-url> --jira <jira-url>
-```
-
-Run smoke tests:
+Run smoke tests after onboarding:
 
 ```bash
 npm run test:e2e -- --project=<name>
@@ -40,25 +39,27 @@ npm run test:e2e -- --project=<name>
 ## Writing tests
 
 - Use English for features, steps, and docs.
-- `regression/` holds smoke / baseline tests (`*.feature` + `steps/`).
+- `regression/` holds smoke / baseline tests (`*.feature` + `*.steps.ts` side by side).
 - Ticket-specific tests: `<project>/<TICKET-ID>/` with the same layout — see [jira-to-e2e skill](skills/jira-to-e2e/SKILL.md).
+- Before running or writing tests for a product, read `<project>/README.md` and `<project>/KNOWLEDGE.md`.
 - Tag scenarios as needed, e.g. `@smoke`, `@regression`, plus the ticket key (`@BET-4344`).
 
 ## MCP prerequisites
 
-Tests run without MCP. MCP helps when you write tests from Jira tickets or GitHub PRs.
+Tests run without MCP. MCP helps when onboarding products or writing tests from Jira.
 
 | MCP | Required for |
 |-----|----------------|
-| **GitHub** | Read PRs and repo context |
-| **Atlassian (Jira)** | Read tickets and JQL search |
+| **Browser** | add-product UI exploration |
+| **GitHub** | PRs, repo context, routes |
+| **Atlassian (Jira)** | Tickets, JQL search |
 
-**Your job:** if either MCP is missing or failing, help the user set it up in their IDE (not in `.env`).
+**Your job:** if a required MCP is missing or failing, help the user set it up in their IDE (not in `.env`).
 
 - **GitHub** — add GitHub MCP; user needs a [personal access token](https://github.com/settings/tokens) in IDE MCP settings (e.g. Cursor `.cursor/mcp.json`).
 - **Jira** — enable Atlassian MCP in IDE; user completes OAuth once.
 
-When both work, before writing tests for a ticket:
+When writing tests for a ticket:
 
-1. Read `<project>/README.md` for Jira project key and GitHub `owner/repo`.
+1. Read `<project>/README.md` and `<project>/KNOWLEDGE.md`.
 2. Follow the **jira-to-e2e** skill (`.agents/skills/jira-to-e2e/SKILL.md`).

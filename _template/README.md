@@ -1,6 +1,6 @@
 # Product template
 
-Use `npm run add-product` to scaffold a new product interactively.
+Copied by the **add-product** agent skill (`.agents/skills/add-product/SKILL.md`).
 
 ## Metadata (for agents)
 
@@ -17,16 +17,17 @@ Use `npm run add-product` to scaffold a new product interactively.
 Set in the repo root `.env`:
 
 ```bash
-# Rename TEMPLATE_BASE_URL to <PROJECT>_BASE_URL when importing, e.g. B2B_BASE_URL
+# Renamed on scaffold: TEMPLATE_BASE_URL → <PREFIX>_BASE_URL
 TEMPLATE_BASE_URL=https://example.com
 ```
-
-Update `regression/steps/smoke.steps.ts` to use your env var name.
 
 ## Test layout
 
 ```
 regression/
+  smoke.feature
+  smoke.steps.ts
+<ticket-id>/
   *.feature
-  steps/
+  *.steps.ts
 ```
