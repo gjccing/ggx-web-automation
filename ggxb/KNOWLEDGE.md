@@ -4,16 +4,32 @@
 
 ## Overview
 
-GoGoX Business (B2B portal) lets corporate customers book van/truck transport and same-day delivery, manage orders, billing/wallet, users & branches, address book, and API integrations. HK staging (`hk-b2b-stag.gogox.com`) hosts the `gogovan/b2b-website` React app.
+GoGoX Business (B2B portal) lets corporate customers book van/truck transport and same-day delivery, manage orders, billing/wallet, users & branches, address book, and API integrations. The same `gogovan/b2b-website` React app is deployed per market on region-specific staging hosts.
 
 ## Metadata
 
 | Field | Value |
 |-------|-------|
 | Project ID | `ggxb` |
-| Base URL env | `GGXB_BASE_URL` |
+| Regions | `hk`, `sg` |
+| Base URL env | `GGXB_HK_BASE_URL`, `GGXB_SG_BASE_URL` |
 | GitHub repo | `gogovan/b2b-website` |
 | Jira project key | `BET` |
+
+## Regions
+
+| Region | Staging host | Default language | Notes |
+|--------|--------------|------------------|-------|
+| HK | `hk-b2b-stag.gogox.com` | 繁體中文 | Auth footer + sidebar offer **繁體中文 / English** toggle; preference is stored in the browser (not an automation env var) |
+| SG | `sg-b2b-stag.gogox.com` | English | Smoke verified; full UI exploration pending |
+
+### Language (HK)
+
+HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do not add a `GGXB_*_LOCALE` env var** unless a test must assert locale-specific copy. For E2E:
+
+- Prefer `data-testid` and role-based selectors over visible text.
+- If a scenario depends on wording, document the assumed language in the scenario (e.g. `@hk @en`) and switch language in the step — not via `.env`.
+- Default staging observation used **繁體中文** after login.
 
 ## Roles
 
@@ -77,11 +93,11 @@ GoGoX Business (B2B portal) lets corporate customers book van/truck transport an
 
 | Variable | Purpose | In `.env.example`? |
 |----------|---------|-------------------|
-| `GGXB_BASE_URL` | Product base URL | yes |
-| `GGXB_TEST_USER_EMAIL` | Staging login email | placeholder only |
-| `GGXB_TEST_USER_PASSWORD` | Staging login password | placeholder only |
+| `GGXB_HK_BASE_URL` | HK staging base URL | yes |
+| `GGXB_SG_BASE_URL` | SG staging base URL | yes |
+| `GGXB_BASE_URL` | Legacy HK URL alias | optional |
 
-**Secrets** (passwords, API keys): store in `.env` only — never commit real values.
+Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 
 ## UI conventions
 
@@ -107,8 +123,7 @@ GoGoX Business (B2B portal) lets corporate customers book van/truck transport an
 
 - **Explored on:** 2026-06-24
 - **Base URL used:** `https://hk-b2b-stag.gogox.com/`
-- **Blockers:** None after test credentials provided. Full order placement not exercised (would create real staging orders).
 
 ## Related tests
 
-- `regression/smoke.feature` — homepage loads (HTTP 2xx + non-empty title)
+- `regression/smoke/index.feature` — per-region homepage smoke (`@hk`, `@sg`)

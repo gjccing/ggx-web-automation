@@ -8,11 +8,11 @@ dotenv.config();
 const projects = discoverProjects();
 
 function featureGlobs(name: string) {
-  return [`${name}/*/*.feature`];
+  return [`${name}/**/*.feature`];
 }
 
 function stepGlobs(name: string) {
-  return [`${name}/*/*.steps.ts`];
+  return [`${name}/**/*.steps.ts`];
 }
 
 const bddProjects =

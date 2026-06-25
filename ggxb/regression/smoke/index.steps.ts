@@ -1,16 +1,16 @@
 import { expect } from '@playwright/test';
 import { createBdd } from 'playwright-bdd';
+import { ggxbBaseUrl, type GgxbRegion } from '../../env.js';
 
 const { Given, Then } = createBdd();
 
-const BASE_URL_ENV = 'GGXB_BASE_URL';
-
-Given('I open the product homepage', async ({ page }) => {
-  const baseUrl = process.env[BASE_URL_ENV];
-  if (!baseUrl) {
-    throw new Error(`Set ${BASE_URL_ENV} in the repo root .env file`);
+Given('I open the GGXB {string} homepage', async ({ page }, region: string) => {
+  const normalized = region.toLowerCase();
+  if (normalized !== 'hk' && normalized !== 'sg') {
+    throw new Error(`Unsupported GGXB region "${region}" — use "hk" or "sg"`);
   }
 
+  const baseUrl = ggxbBaseUrl(normalized as GgxbRegion);
   const response = await page.goto(baseUrl);
   expect(response, 'navigation should return a response').not.toBeNull();
   expect(response!.ok(), `expected HTTP 2xx for ${baseUrl}`).toBeTruthy();
