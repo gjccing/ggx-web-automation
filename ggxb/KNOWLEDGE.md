@@ -36,8 +36,9 @@ HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do
 | Role | Capabilities | Notes |
 |------|--------------|-------|
 | Unauthenticated visitor | Login, sign up, password recovery | Base URL redirects to `/login` |
-| B2B Master user | Full nav: home, transport, delivery, billing, profile, users & branches, address book, API dashboard | Observed on staging test account; wallet balance shown in sidebar |
+| B2B Master user | Full nav: home, transport, delivery, billing, profile, users & branches, address book, API dashboard | Credentials: `GGXB_{HK\|SG}_TEST_USER_EMAIL` / `GGXB_{HK\|SG}_TEST_USER_PASSWORD` |
 | B2B Branch / Admin | Wallet, users & branches (repo) | Route `authorize` flags in repo |
+| Driver app user | Accept / complete delivery orders (mobile) | Credentials: `GGXB_{HK\|SG}_DA_USER_PHONE` / `GGXB_{HK\|SG}_DA_USER_PASSWORD` |
 
 ## Core flows
 
@@ -95,7 +96,17 @@ HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do
 |----------|---------|-------------------|
 | `GGXB_HK_BASE_URL` | HK staging base URL | yes |
 | `GGXB_SG_BASE_URL` | SG staging base URL | yes |
-| `GGXB_BASE_URL` | Legacy HK URL alias | optional |
+| `GGXB_BASE_URL` | Legacy HK URL alias (used when `GGXB_HK_BASE_URL` is unset) | yes |
+| `GGXB_HK_TEST_USER_EMAIL` | HK B2B portal login email | placeholder |
+| `GGXB_HK_TEST_USER_PASSWORD` | HK B2B portal login password | placeholder |
+| `GGXB_SG_TEST_USER_EMAIL` | SG B2B portal login email | placeholder |
+| `GGXB_SG_TEST_USER_PASSWORD` | SG B2B portal login password | placeholder |
+| `GGXB_HK_DA_USER_PHONE` | HK driver app login phone | placeholder |
+| `GGXB_HK_DA_USER_PASSWORD` | HK driver app login password | placeholder |
+| `GGXB_SG_DA_USER_PHONE` | SG driver app login phone | placeholder |
+| `GGXB_SG_DA_USER_PASSWORD` | SG driver app login password | placeholder |
+
+**Secrets** (passwords, real emails/phones): store in `.env` only — never commit real values to `.env.example` or this file.
 
 Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 

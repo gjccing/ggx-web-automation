@@ -10,6 +10,8 @@ GoGoX B2B business portal — staging automation target for `gogovan/b2b-website
 | Env prefix | `GGXB` |
 | Regions | `hk`, `sg` |
 | Base URL env (per region) | `GGXB_HK_BASE_URL`, `GGXB_SG_BASE_URL` |
+| B2B test account env | `GGXB_{HK\|SG}_TEST_USER_EMAIL`, `GGXB_{HK\|SG}_TEST_USER_PASSWORD` |
+| Driver app test account env | `GGXB_{HK\|SG}_DA_USER_PHONE`, `GGXB_{HK\|SG}_DA_USER_PASSWORD` |
 | GitHub repo | `gogovan/b2b-website` |
 | GitHub URL | `https://github.com/gogovan/b2b-website` |
 | Jira project key | `BET` |
@@ -17,14 +19,28 @@ GoGoX B2B business portal — staging automation target for `gogovan/b2b-website
 
 ## Environment
 
-Set in the repo root `.env`:
+Set in the repo root `.env` (see `.env.example` for placeholders):
 
 ```bash
+# Base URLs (per region)
+GGXB_BASE_URL=https://hk-b2b-stag.gogox.com/          # legacy HK alias
 GGXB_HK_BASE_URL=https://hk-b2b-stag.gogox.com/
 GGXB_SG_BASE_URL=https://sg-b2b-stag.gogox.com/
+
+# B2B portal test accounts
+GGXB_HK_TEST_USER_EMAIL=
+GGXB_HK_TEST_USER_PASSWORD=
+GGXB_SG_TEST_USER_EMAIL=
+GGXB_SG_TEST_USER_PASSWORD=
+
+# Driver app test accounts
+GGXB_HK_DA_USER_PHONE=
+GGXB_HK_DA_USER_PASSWORD=
+GGXB_SG_DA_USER_PHONE=
+GGXB_SG_DA_USER_PASSWORD=
 ```
 
-`GGXB_BASE_URL` remains supported as a legacy HK alias.
+`GGXB_BASE_URL` remains supported as a legacy HK alias when `GGXB_HK_BASE_URL` is unset. Credential values are secrets — keep them in `.env` only.
 
 ## Test layout
 
