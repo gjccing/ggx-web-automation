@@ -21,7 +21,7 @@ GoGoX Business (B2B portal) lets corporate customers book van/truck transport an
 | Region | Staging host | Default language | Notes |
 |--------|--------------|------------------|-------|
 | HK | `hk-b2b-stag.gogox.com` | 繁體中文 | Auth footer + sidebar offer **繁體中文 / English** toggle; preference is stored in the browser (not an automation env var) |
-| SG | `sg-b2b-stag.gogox.com` | English | Smoke verified; full UI exploration pending |
+| SG | `sg-b2b-stag.gogox.com` | English | No auth language toggle; post-login → `/van/order` (no `/home`); delivery nav absent on test account |
 
 ### Language (HK)
 
@@ -44,51 +44,134 @@ HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do
 
 ### Public (observed)
 
-1. **Login** — `/login` → Email + Password → **Log in** → redirects to `/home`
+1. **Login** — `/login` → Email + Password → **Log in** → HK: `/home` (if `homepage_access`); SG: `/van/order`
 2. **Sign up** — `/signup` → company/industry/integration/name/email/phone/password → **Create account**
 3. **Password recovery** — `/recovery` → Email → **Reset password**
 
 ### Authenticated (observed)
 
-4. **Home** — `/home` → service cards (Book van or truck / Deliver small package) + top-up CTA
-5. **Van place order** — `/van/order` → pick-up/drop-off addresses → vehicle type (Van / 5.5 ton / 9 ton) → pick-up time → **Next** (multi-step: Route details → Order details → Summary)
+4. **Home** — `/home` → service cards (Book van or truck / Deliver small package) + top-up CTA *(HK; SG may redirect to `/van/order` when `homepage_access` is off)*
+5. **Van place order** — `/van/order` → pick-up/drop-off → vehicle type → pick-up time → **Next** (wizard: Route details → Order details → Summary)
 6. **Van order management** — `/orders` → filter by date range, status, branch; search by name/phone/address/order ID
 7. **Delivery place order** — `/delivery/order` → pick-up/drop-off, package size/weight, delivery time slots, pay with wallet → **Place order**
 8. **Address book** — `/address-book` → table of saved addresses → **Add address**
+9. **Favourite drivers** — `/van/favorite-drivers` *(observed HK)*
+10. **Delivery bulk order** — `/delivery/bulk-import` → download template (.xlsx), upload (max 20 orders) *(observed HK)*
+11. **Delivery order management** — `/delivery/order-management` → date range + search *(observed HK)*
+12. **Shopify integration** — `/delivery/shopify-integration` *(observed HK; page may be minimal)*
+13. **Billing** — `/payment-method`, `/billing-history`, `/voucher` *(observed HK)*
+14. **Users & branches** — `/users-and-branches` → user table, **Add new user** *(observed HK)*
+15. **API Dashboard** — `/developer/dashboard` → Application ID, Client secret, Redirect URIs, Webhook URL *(observed HK; master user only)*
+16. **Profile** — `/profile` → name, phone, branch, access level, change password *(observed HK)*
 
-### From repo (not fully explored in browser)
+## Route sitemap (from repo)
 
-9. **Favourite drivers** — `/van/favorite-drivers`
-10. **Bulk import** — `/van/bulk-import`, `/delivery/bulk-import`
-11. **Delivery order management** — `/delivery/order-management`
-12. **Shopify integration** — `/delivery/shopify-integration`
-13. **Billing** — `/payment-method`, `/billing-history`, `/voucher`, `/wallet`
-14. **Users & branches** — `/users-and-branches`
-15. **API Dashboard** — `/developer/dashboard` (master user only per repo)
-16. **Profile** — `/profile` (repo)
+> Source: `gogovan/b2b-website` — `client/src/legacy/routes/index.js`, `client/src/app.routes.js`, and module `*.routes.js`.  
+> Paths are relative to the region base URL. Unless marked **public**, routes require login (`AuthenticatedContainer` under `/`).
+
+### Public
+
+| Path | Component (`client/src/…`) | Notes |
+|------|------------------------------|-------|
+| `/login` | `login/login.component.js` | Logged-in users redirect to `/` |
+| `/recovery` | `forgot-password/forgot-password.component.js` | Password reset |
+| `/customer-service` | `customer-service/customer-service.component.js` | |
+| `/signup` | `self-registration/account-creation/account-creation.component.js` | Requires `self_registration` feature flag |
+| `/set-password` | `self-registration/self-registration.component.js` (layout) + `account-password/account-password.component.js` | Requires `?token=` query |
+| `/delivery/order-management/print-labels` | `delivery/order-management/print-labels/print-labels.component.js` | **Outside** auth shell; requires `?id=` query |
+
+### Authenticated — home & account
+
+| Path | Component | Notes |
+|------|-----------|-------|
+| `/` | — | `IndexRedirect` → `/home` |
+| `/home` | `home/home.component.js` | Requires `homepage_access` flag; else redirect `/van/order` |
+| `/profile` | `profile/profile.component.js` | |
+| `/address-book` | `address-book/address-book.component.js` | |
+| `/users-and-branches` | `users-and-branches/users-and-branches-v2.component.js` | v1 (`users-and-branches.component.js`) **not routed**; authorize: Admin / Master / Branch |
+| `/developer/dashboard` | `developer/developer-dashboard.component.js` | Master user only; `/developer` redirects here |
+
+### Authenticated — transport (van)
+
+| Path | Component | Notes |
+|------|-----------|-------|
+| `/van/order` | `van-booking/order/order.component.js` | `/van` index redirect; default post-login for SG |
+| `/van/favorite-drivers` | `van-booking/favorite-drivers/favorite-drivers.component.js` | |
+| `/van/bulk-import` | `van-booking/bulk-import/bulk-import.component.js` | **VN only**, or **HK org id = 1890**; else redirect `/van/order` |
+| `/orders` | `order-management/order-management.component.js` | Van order list |
+| `/orders/:id` | `order-management/order-management.component.js` | Single van order |
+| `/orders/view` | — | Redirect → `/orders` |
+
+### Authenticated — delivery
+
+| Path | Component | Notes |
+|------|-----------|-------|
+| `/delivery/order` | `delivery/order/order.component.js` | Requires `gogodelivery_ggb` flag |
+| `/delivery/order-management` | `delivery/order-management/order-management.component.js` | Same flag |
+| `/delivery/bulk-import` | `delivery/bulk-import/bulk-import.component.js` | |
+| `/delivery/bulk-import/complete` | `delivery/bulk-import/bulk-import-complete/bulk-import-complete.component.js` | Post-upload confirmation |
+| `/delivery/integration` | `delivery/ecommerce-integration/ecommerce-integration.component.js` | **onEnter redirects to `/developer/dashboard`** |
+| `/delivery/shopify-integration` | `delivery/shopify-integration/shopify-integration.component.js` | Requires `shopify_integration` flag |
+
+`/delivery` index redirect → `/delivery/order`.
+
+### Authenticated — billing
+
+| Path | Component | Notes |
+|------|-----------|-------|
+| `/payment-method` | `billing/payment-method/payment-method.component.js` | `prepaidRoutesHandler` (payment-type / feature flags) |
+| `/voucher` | `billing/voucher/voucher.component.js` | Coupons; sidebar label "Coupons" |
+| `/billing-history` | `billing/transaction-history/transaction-history.component.js` | Transaction history |
+| `/wallet` | `legacy/containers/wallet/tabbed_view` | Monthly-settlement wallet; credit-card users redirect to `/billing-history` |
+
+### Route tree (condensed)
+
+```
+/login, /recovery, /customer-service, /signup, /set-password
+/delivery/order-management/print-labels?...     [public, needs id]
+
+/  [authenticated]
+├─ /home
+├─ /profile, /address-book, /users-and-branches
+├─ /developer/dashboard
+├─ /van/order, /van/favorite-drivers, /van/bulk-import
+├─ /orders, /orders/:id
+├─ /delivery/order, /delivery/order-management
+├─ /delivery/bulk-import, /delivery/bulk-import/complete
+├─ /delivery/integration → redirect, /delivery/shopify-integration
+├─ /payment-method, /voucher, /billing-history, /wallet
+```
 
 ## Pages & navigation
 
-| Path | Purpose | How to reach |
-|------|---------|--------------|
+Quick reference for agents — see **Route sitemap** above for component mapping and guards.
+
+| Path | Purpose | How to reach (HK sidebar) |
+|------|---------|---------------------------|
 | `/login` | Sign in | Default for unauthenticated users |
 | `/signup` | Self-registration | Link from login |
 | `/recovery` | Password reset | "Forgot your password?" on login |
-| `/home` | Dashboard | Post-login landing (feature-flagged) |
-| `/van/order` | New van/truck order | Nav: Transport service → Place order |
-| `/orders` | Van order list | Nav: Transport service → Order management |
-| `/delivery/order` | New delivery order | Nav: Delivery service → Place order |
-| `/address-book` | Saved addresses | Nav: Address book |
-| `/users-and-branches` | User/branch admin | Nav: Users & branches |
-| `/developer/dashboard` | API keys / integration | Nav: API Dashboard |
+| `/home` | Dashboard | Post-login landing *(feature-flagged)* |
+| `/van/order` | New van/truck order | Transport service → Place order |
+| `/orders` | Van order list | Transport service → Order management |
+| `/van/favorite-drivers` | Favourite drivers | Transport service → Favourite drivers |
+| `/delivery/order` | New delivery order | Delivery service → Place order |
+| `/delivery/bulk-import` | Bulk delivery upload | Delivery service → Bulk order |
+| `/delivery/order-management` | Delivery order list | Delivery service → Order management |
+| `/delivery/shopify-integration` | Shopify connect | Delivery service → Shopify integration |
+| `/payment-method` | Wallet & cards | Billing → Payment method |
+| `/voucher` | Coupons | Billing → Coupons |
+| `/billing-history` | Transactions | Billing → Transaction history |
+| `/profile` | User profile | Profile → Profile |
+| `/users-and-branches` | User/branch admin | Profile → Users & branches |
+| `/address-book` | Saved addresses | Profile → Address book |
+| `/developer/dashboard` | API keys / webhooks | Profile → API Dashboard |
 
-### Sidebar structure (authenticated)
+### Sidebar structure
 
-- **Transport service:** Place order, Order management, Favourite drivers
-- **Delivery service:** Place order, Bulk order, Order management, Shopify integration
-- **Billing:** Payment method, Coupons, Transaction history
-- **Profile:** Profile, Users & branches, Address book, API Dashboard
-- Footer: wallet balance, notifications, language (繁體中文), Logout
+**HK (observed)** — includes Home, Transport, Delivery, Billing, Profile sections; footer: wallet, notifications, language toggle, Logout.
+
+**SG (observed)** — no Home nav item; no Delivery section for test account; post-login lands on `/van/order`. Vehicle types: Motorcycle, Sedan, Van, 10/14/24 ft. Lorry (not HK's Van / 5.5 ton / 9 ton).
 
 ## Environment variables
 
@@ -125,15 +208,20 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 
 - Unauthenticated visit to base URL returns HTTP 200 but client router sends users to `/login`
 - Page title may lag behind route (e.g. signup/recovery still show "Sign in")
-- `/home` access depends on `homepage_access` feature flag (this account has access)
+- `/home` access depends on `homepage_access` feature flag (HK test account has access; SG redirects to `/van/order`)
 - Delivery and Shopify routes gated by feature flags (`gogodelivery_ggb`, `shopify_integration`)
-- Wallet/billing nav differs by payment type (monthly settlement vs credit card)
-- Test account shows prepaid wallet balance in sidebar
+- `/van/bulk-import` only for VN or HK org id 1890 — other accounts redirect to `/van/order` (may render blank if navigated directly)
+- `/delivery/integration` immediately redirects to `/developer/dashboard` (repo `onEnter`)
+- `/delivery/bulk-import` may show a one-time modal ("New Bulk Import Template"); dismiss with Escape
+- Wallet/billing nav differs by payment type (monthly settlement vs credit card); `/wallet` vs `/billing-history`
+- Wallet balance shown in sidebar (prepaid accounts)
+- SG signup UTM may still reference `HK_B2B-login-page` campaign string
 
 ## Exploration notes
 
-- **Explored on:** 2026-06-24
-- **Base URL used:** `https://hk-b2b-stag.gogox.com/`
+- **Explored on:** 2026-06-25 (HK full + SG partial); routes from repo 2026-06-25
+- **Base URLs used:** `https://hk-b2b-stag.gogox.com/`, `https://sg-b2b-stag.gogox.com/`
+- **Open:** SG authenticated deep-dive (billing, users, delivery if flags enabled); van bulk-import on eligible account
 
 ## Related tests
 
