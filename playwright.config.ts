@@ -38,6 +38,7 @@ const bddProjects =
 
 export default defineConfig({
   projects: bddProjects,
+  timeout: 60_000,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

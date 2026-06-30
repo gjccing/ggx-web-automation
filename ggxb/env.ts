@@ -7,6 +7,18 @@ const BASE_URL_ENV: Record<GgxbRegion, string> = {
 
 const LEGACY_BASE_URL_ENV = "GGXB_BASE_URL";
 
+const DEFAULT_API_BASE_URL: Record<GgxbRegion, string> = {
+  hk: "https://stag-hk.gogovan.tech",
+  sg: "https://stag-sg.gogovan.tech",
+};
+
+export function ggxbApiBaseUrl(region: GgxbRegion): string {
+  const envKey = `GGXB_${region.toUpperCase()}_API_BASE_URL`;
+  const fromEnv = process.env[envKey];
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return DEFAULT_API_BASE_URL[region];
+}
+
 export function ggxbBaseUrl(region: GgxbRegion): string {
   const regional = process.env[BASE_URL_ENV[region]];
   if (regional) return regional;
@@ -20,4 +32,56 @@ export function ggxbBaseUrl(region: GgxbRegion): string {
   throw new Error(
     `Set ${BASE_URL_ENV[region]} in the repo root .env file${hint}`,
   );
+}
+
+const TEST_USER_ENV: Record<GgxbRegion, { email: string; password: string }> = {
+  hk: {
+    email: "GGXB_HK_TEST_USER_EMAIL",
+    password: "GGXB_HK_TEST_USER_PASSWORD",
+  },
+  sg: {
+    email: "GGXB_SG_TEST_USER_EMAIL",
+    password: "GGXB_SG_TEST_USER_PASSWORD",
+  },
+};
+
+export function ggxbTestUser(region: GgxbRegion): {
+  email: string;
+  password: string;
+} {
+  const keys = TEST_USER_ENV[region];
+  const email = process.env[keys.email];
+  const password = process.env[keys.password];
+  if (!email || !password) {
+    throw new Error(
+      `Set ${keys.email} and ${keys.password} in the repo root .env file`,
+    );
+  }
+  return { email, password };
+}
+
+const DA_USER_ENV: Record<GgxbRegion, { phone: string; password: string }> = {
+  hk: {
+    phone: "GGXB_HK_DA_USER_PHONE",
+    password: "GGXB_HK_DA_USER_PASSWORD",
+  },
+  sg: {
+    phone: "GGXB_SG_DA_USER_PHONE",
+    password: "GGXB_SG_DA_USER_PASSWORD",
+  },
+};
+
+export function ggxbDaUser(region: GgxbRegion): {
+  phone: string;
+  password: string;
+} {
+  const keys = DA_USER_ENV[region];
+  const phone = process.env[keys.phone];
+  const password = process.env[keys.password];
+  if (!phone || !password) {
+    throw new Error(
+      `Set ${keys.phone} and ${keys.password} in the repo root .env file`,
+    );
+  }
+  return { phone, password };
 }
