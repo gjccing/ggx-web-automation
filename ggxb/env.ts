@@ -85,3 +85,46 @@ export function ggxbDaUser(region: GgxbRegion): {
   }
   return { phone, password };
 }
+
+const ADMIN_BASE_URL_ENV: Record<GgxbRegion, string> = {
+  hk: "GGXB_HK_ADMIN_BASE_URL",
+  sg: "GGXB_SG_ADMIN_BASE_URL",
+};
+
+const DEFAULT_ADMIN_BASE_URL: Record<GgxbRegion, string> = {
+  hk: "https://stag-hk.gogovan.tech/admin",
+  sg: "https://stag-sg.gogovan.tech/admin",
+};
+
+export function ggxbAdminBaseUrl(region: GgxbRegion): string {
+  const fromEnv = process.env[ADMIN_BASE_URL_ENV[region]];
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  return DEFAULT_ADMIN_BASE_URL[region];
+}
+
+const ADMIN_USER_ENV: Record<GgxbRegion, { email: string; password: string }> =
+  {
+    hk: {
+      email: "GGXB_HK_ADMIN_TEST_USER_EMAIL",
+      password: "GGXB_HK_ADMIN_TEST_USER_PASSWORD",
+    },
+    sg: {
+      email: "GGXB_SG_ADMIN_TEST_USER_EMAIL",
+      password: "GGXB_SG_ADMIN_TEST_USER_PASSWORD",
+    },
+  };
+
+export function ggxbAdminTestUser(region: GgxbRegion): {
+  email: string;
+  password: string;
+} {
+  const keys = ADMIN_USER_ENV[region];
+  const email = process.env[keys.email];
+  const password = process.env[keys.password];
+  if (!email || !password) {
+    throw new Error(
+      `Set ${keys.email} and ${keys.password} in the repo root .env file`,
+    );
+  }
+  return { email, password };
+}
