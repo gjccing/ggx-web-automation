@@ -49,6 +49,34 @@ export async function navigateToTransportOrder(
   await expect(page.getByTestId("main-content")).toBeVisible({ timeout: 30_000 });
 }
 
+export async function navigateToDeliveryOrder(
+  page: Page,
+  region: GgxbRegion,
+): Promise<void> {
+  if (region === "hk") {
+    await ensureEnglish(page);
+  }
+
+  const base = ggxbBaseUrl(region).replace(/\/$/, "");
+  const onOrderPage = page.url().includes("/delivery/order");
+  if (!onOrderPage) {
+    const link = page
+      .locator('a[href*="/delivery/order"]')
+      .filter({ hasText: /Place order|Place an order/i })
+      .first();
+    if (await link.isVisible().catch(() => false)) {
+      await link.click();
+    } else {
+      await page.goto(`${base}/delivery/order`);
+    }
+  }
+
+  await expect(page).toHaveURL(/\/delivery\/order(?:\/|$|\?|#)/, {
+    timeout: 30_000,
+  });
+  await expect(page.getByTestId("main-content")).toBeVisible({ timeout: 30_000 });
+}
+
 export function parseWalletBalanceText(text: string): number {
   const normalized = text.replace(/,/g, "");
   const match = normalized.match(/\$([\d.]+)/);
