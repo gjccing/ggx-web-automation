@@ -1,4 +1,4 @@
-@regression @BET-4372 @transport-order @coupon
+@BET-4372 @transport-order @coupon
 Feature: BET-4372 Redeem AR coupon on transport order summary
 
   @hk
