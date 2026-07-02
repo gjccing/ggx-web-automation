@@ -49,6 +49,40 @@ export async function fillTransportToWaypoint(
   await setTransportWaypointAddress(page, "to", fixture.address);
 }
 
+export async function selectTransportWasteRequirement(page: Page): Promise<void> {
+  await page
+    .getByRole("dialog")
+    .filter({ hasText: /Loading/i })
+    .waitFor({ state: "hidden", timeout: 30_000 })
+    .catch(() => {});
+
+  const wasteOption = page.getByText(/Transport or dispose waste/i).first();
+  await expect(wasteOption).toBeVisible({ timeout: 15_000 });
+  await wasteOption.click({ force: true });
+}
+
+export async function buildTransportOrderToSummary(
+  page: Page,
+  fixture: { from: TransportWaypointFixture; to: TransportWaypointFixture },
+  options?: { wasteRequirement?: boolean },
+): Promise<void> {
+  await fillTransportFromWaypoint(page, fixture.from);
+  await fillTransportToWaypoint(page, fixture.to);
+  await page.getByRole("button", { name: transportOrderLabels.nextButton }).click();
+
+  await page
+    .getByRole("dialog")
+    .filter({ hasText: /Loading/i })
+    .waitFor({ state: "hidden", timeout: 30_000 })
+    .catch(() => {});
+
+  if (options?.wasteRequirement === true) {
+    await selectTransportWasteRequirement(page);
+  }
+
+  await proceedToTransportOrderSummary(page, { onOrderDetails: true });
+}
+
 async function dismissTunnelPreferenceModal(page: Page): Promise<void> {
   const heading = page.getByRole("heading", {
     name: /Add tunnel preference/i,
@@ -75,8 +109,14 @@ async function dismissTunnelPreferenceModal(page: Page): Promise<void> {
   await heading.waitFor({ state: "hidden", timeout: 15_000 });
 }
 
-export async function proceedToTransportOrderSummary(page: Page): Promise<void> {
-  await page.getByRole("button", { name: transportOrderLabels.nextButton }).click();
+export async function proceedToTransportOrderSummary(
+  page: Page,
+  options?: { onOrderDetails?: boolean },
+): Promise<void> {
+  if (!options?.onOrderDetails) {
+    await page.getByRole("button", { name: transportOrderLabels.nextButton }).click();
+  }
+
   await page
     .getByRole("button", { name: transportOrderLabels.reviewOrderButton })
     .click();
