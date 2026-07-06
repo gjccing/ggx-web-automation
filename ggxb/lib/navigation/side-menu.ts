@@ -23,6 +23,28 @@ export async function ensureEnglish(page: Page): Promise<void> {
   }
 }
 
+/** Switch HK UI to Traditional Chinese when English is active. */
+export async function ensureTraditionalChinese(page: Page): Promise<void> {
+  const footerMenu = page.locator(
+    '[data-testid="navigation-bar-footer-menu-user"]',
+  );
+  await expect(footerMenu).toBeVisible({ timeout: 15_000 });
+
+  const homeZh = page.getByRole("link", { name: "主頁" });
+  if (await homeZh.isVisible().catch(() => false)) {
+    return;
+  }
+
+  await footerMenu.click();
+  const languageSwitch = page.locator('[data-testid="language-switch"]');
+  await expect(languageSwitch).toBeVisible();
+  const label = (await languageSwitch.textContent())?.trim() ?? "";
+  if (label === "繁體中文") {
+    await languageSwitch.click();
+    await expect(homeZh).toBeVisible({ timeout: 15_000 });
+  }
+}
+
 export async function navigateToTransportOrder(
   page: Page,
   region: GgxbRegion,
