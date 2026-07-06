@@ -9,23 +9,14 @@ import {
   selectFixedFeeOption,
 } from "../lib/pages/fixed-fee-moving.js";
 import {
-  bet4377TooltipSnippets,
-  type Bet4377Vehicle,
+  bet4377TooltipText,
+  normalizeTooltipText,
+  parseBet4377Locale,
+  parseBet4377Vehicle,
 } from "../lib/test-data/bet-4377.js";
 import { transportOrderFixture } from "../lib/test-data/transport-order.js";
 
 const { When, Then } = createBdd();
-
-function parseVehicle(vehicle: string): Bet4377Vehicle {
-  if (
-    vehicle !== "Van" &&
-    vehicle !== "5.5 ton truck" &&
-    vehicle !== "9 ton truck"
-  ) {
-    throw new Error(`Unsupported BET-4377 vehicle "${vehicle}"`);
-  }
-  return vehicle;
-}
 
 function parseBoolean(value: string): boolean {
   if (value === "true") return true;
@@ -34,44 +25,54 @@ function parseBoolean(value: string): boolean {
 }
 
 When(
-  "I open transport order details with {string} and move goods door-to-door",
-  async ({ page }, vehicle: string) => {
-    await navigateToTransportOrder(page, "hk");
+  "I open transport order details in {string} with {string} and move goods door-to-door",
+  async ({ page }, locale: string, vehicle: string) => {
+    const l = parseBet4377Locale(locale);
+    await navigateToTransportOrder(page, "hk", {
+      locale: l === "zh-HK" ? "zh" : "en",
+    });
     await openFixedFeeMovingForVehicle(
       page,
       transportOrderFixture.hk,
-      parseVehicle(vehicle),
+      parseBet4377Vehicle(vehicle),
+      l,
     );
   },
 );
 
-When("I select the fixed fee moving option", async ({ page }) => {
-  await selectFixedFeeOption(page);
-});
+When(
+  "I select the fixed fee moving option in {string}",
+  async ({ page }, locale: string) => {
+    await selectFixedFeeOption(page, parseBet4377Locale(locale));
+  },
+);
 
-When("I hover the fixed fee info icon", async ({ page }) => {
-  await hoverFixedFeeInfoIcon(page);
-});
-
-Then(
-  "the fixed fee pallet helper text should be visible: {word}",
-  async ({ page }, visible: string) => {
-    await expectFixedFeePalletBodyVisible(page, parseBoolean(visible));
+When(
+  "I hover the fixed fee info icon in {string}",
+  async ({ page }, locale: string) => {
+    await hoverFixedFeeInfoIcon(page, parseBet4377Locale(locale));
   },
 );
 
 Then(
-  "the fixed fee info tooltip for {string} should show the updated copy",
-  async ({ page }, vehicle: string) => {
-    const v = parseVehicle(vehicle);
-    const tooltip = await readFixedFeeTooltipText(page);
-    const rules = bet4377TooltipSnippets[v];
+  "the fixed fee pallet helper text in {string} should be visible: {word}",
+  async ({ page }, locale: string, visible: string) => {
+    await expectFixedFeePalletBodyVisible(
+      page,
+      parseBet4377Locale(locale),
+      parseBoolean(visible),
+    );
+  },
+);
 
-    for (const pattern of rules.mustInclude) {
-      expect(tooltip).toMatch(pattern);
-    }
-    for (const pattern of rules.mustExclude ?? []) {
-      expect(tooltip).not.toMatch(pattern);
-    }
+Then(
+  "the fixed fee info tooltip in {string} for {string} should show the updated copy",
+  async ({ page }, locale: string, vehicle: string) => {
+    const l = parseBet4377Locale(locale);
+    const v = parseBet4377Vehicle(vehicle);
+    const tooltip = await readFixedFeeTooltipText(page, l);
+    const expected = bet4377TooltipText[l][v];
+
+    expect(normalizeTooltipText(tooltip)).toBe(normalizeTooltipText(expected));
   },
 );

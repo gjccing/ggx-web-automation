@@ -28,7 +28,7 @@ export async function logInAsMasterUser(
   const { email, password } = ggxbTestUser(region);
   await page.locator('[name="email"]').fill(email);
   await page.locator('[name="password"]').fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByRole("button", { name: /Log in|登入/ }).click();
 }
 
 /** Post-login landing varies by region and `homepage_access` feature flag. */

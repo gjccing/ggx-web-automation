@@ -30,7 +30,7 @@ export async function ensureTraditionalChinese(page: Page): Promise<void> {
   );
   await expect(footerMenu).toBeVisible({ timeout: 15_000 });
 
-  const homeZh = page.getByRole("link", { name: "主頁" });
+  const homeZh = page.getByRole("link", { name: /主頁|首頁/ });
   if (await homeZh.isVisible().catch(() => false)) {
     return;
   }
@@ -48,9 +48,14 @@ export async function ensureTraditionalChinese(page: Page): Promise<void> {
 export async function navigateToTransportOrder(
   page: Page,
   region: GgxbRegion,
+  options?: { locale?: "en" | "zh" },
 ): Promise<void> {
   if (region === "hk") {
-    await ensureEnglish(page);
+    if (options?.locale === "zh") {
+      await ensureTraditionalChinese(page);
+    } else {
+      await ensureEnglish(page);
+    }
   }
 
   const base = ggxbBaseUrl(region).replace(/\/$/, "");
@@ -58,7 +63,7 @@ export async function navigateToTransportOrder(
   if (!onOrderPage) {
     const link = page
       .locator('a[href*="/van/order"]')
-      .filter({ hasText: /Place order|Place an order/i })
+      .filter({ hasText: /Place order|Place an order|新增訂單/i })
       .first();
     if (await link.isVisible().catch(() => false)) {
       await link.click();

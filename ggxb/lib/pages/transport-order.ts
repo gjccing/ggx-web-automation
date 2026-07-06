@@ -10,7 +10,7 @@ export const transportOrderLabels = {
 
 async function addressInput(page: Page, waypoint: "from" | "to") {
   const index = waypoint === "from" ? 0 : 1;
-  return page.getByPlaceholder("Address").nth(index);
+  return page.getByPlaceholder(/Address|地址/).nth(index);
 }
 
 export async function setTransportWaypointAddress(
@@ -37,9 +37,9 @@ export async function fillTransportFromWaypoint(
   fixture: TransportWaypointFixture,
 ): Promise<void> {
   await setTransportWaypointAddress(page, "from", fixture.address);
-  await page.getByPlaceholder("Floor/Room").first().fill(fixture.floorRoom);
-  await page.getByPlaceholder("Contact name").first().fill(fixture.contactName);
-  await page.getByPlaceholder("Phone number").first().fill(fixture.phone);
+  await page.getByPlaceholder(/Floor\/Room|樓\/室/).first().fill(fixture.floorRoom);
+  await page.getByPlaceholder(/Contact name|聯絡人/).first().fill(fixture.contactName);
+  await page.getByPlaceholder(/Phone number|電話號碼/).first().fill(fixture.phone);
 }
 
 export async function fillTransportToWaypoint(
