@@ -4,3 +4,4 @@ playwright-report
 test-results
 playwright/.auth
 .features-gen
+ggx-moving/.secrets/

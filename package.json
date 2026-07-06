@@ -23,6 +23,7 @@
     "@playwright/test": "^1.61.0",
     "@types/node": "^25.9.3",
     "dotenv": "^17.2.3",
+    "googleapis": "^173.0.0",
     "playwright-bdd": "^9.1.0",
     "typescript": "^6.0.3"
   }
