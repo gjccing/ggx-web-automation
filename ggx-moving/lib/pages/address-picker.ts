@@ -29,13 +29,43 @@ export async function fillWaypoint(
   await dialog.getByRole("button", { name: /Select|選擇/ }).first().click();
   await page.getByRole("menuitem", { name: data.stairs }).click();
 
-  await dialog.getByRole("button", { name: /Select|選擇/ }).first().click();
-  await page.getByRole("menuitem", { name: data.distance }).click();
+  // "Distance from parking to door" is optional (BET-4380) — only fill when provided.
+  if (data.distance) {
+    await dialog.getByRole("button", { name: /Select|選擇/ }).first().click();
+    await page.getByRole("menuitem", { name: data.distance }).click();
+  }
 
   await dialog.getByRole("button", { name: movingLabels.confirm }).click();
 
   // After confirm the waypoint button shows the full address summary, not the label.
   await expect(page.getByRole("button", { name: new RegExp(data.street) })).toBeVisible();
+}
+
+/**
+ * Open a waypoint (From/To) dialog and read the "Distance from parking to door"
+ * (離泊車位距離) option list. It is the 2nd "Select" dropdown, after "Any stairs
+ * to climb?". Returns the menu-item labels in display order; closes the menu after.
+ */
+export async function readCarryDistanceOptions(
+  page: Page,
+  waypointLabel: RegExp,
+): Promise<string[]> {
+  await page.getByRole("button", { name: waypointLabel, exact: true }).click();
+  const dialog = page.getByRole("dialog");
+
+  // Distance-from-parking is the 2nd "Select" dropdown (after "Any stairs to climb?").
+  const distanceSelect = dialog.getByRole("button", { name: movingLabels.select }).nth(1);
+  await distanceSelect.waitFor({ state: "visible", timeout: 15_000 });
+  await distanceSelect.click();
+
+  const items = page.getByRole("menuitem");
+  await items.first().waitFor({ state: "visible", timeout: 10_000 });
+  const labels = (await items.allInnerTexts())
+    .map((t) => t.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  await page.keyboard.press("Escape");
+  return labels;
 }
 
 export async function fillDistrictStreetPair(

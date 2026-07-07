@@ -3,7 +3,8 @@ export type WaypointFixture = {
   street: string;
   lift: string;
   stairs: string;
-  distance: string;
+  /** "Distance from parking to door" — optional field (BET-4380). Omit to skip. */
+  distance?: string;
   blockFloor?: string;
 };
 
@@ -19,7 +20,7 @@ export const stdMovingWaypoints = {
     street: "Queen's Road Central 1",
     lift: "No lift",
     stairs: "No stairs needed",
-    distance: "No walking needed",
+    distance: "On-premises parking",
     blockFloor: "12/F Room A",
   },
   to: {
@@ -37,7 +38,7 @@ export const disposalWaypoint: WaypointFixture = {
   street: "Sha Tin Centre Street 1",
   lift: "No lift",
   stairs: "No stairs needed",
-  distance: "No walking needed",
+  distance: "On-premises parking",
 };
 
 export function contactFixture(runId: string): ContactFixture {

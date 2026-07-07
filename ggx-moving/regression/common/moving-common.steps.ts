@@ -14,7 +14,9 @@ import {
 
 const { Given, When, Then } = createBdd();
 
-function expectSessionFieldsCleared(values: Record<string, unknown> | null): void {
+function expectSessionFieldsCleared(
+  values: Record<string, unknown> | null,
+): void {
   if (!values || Object.keys(values).length === 0) return;
 
   const preservedKeys = new Set(["date"]);
@@ -146,7 +148,6 @@ Then(
       date?: string;
       time?: string;
     }>(page, key);
-
     expect(values?.from?.address).toBeTruthy();
     if (key === "std-moving") {
       expect(values?.to?.address).toBeTruthy();

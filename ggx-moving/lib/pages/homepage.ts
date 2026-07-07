@@ -35,18 +35,15 @@ export async function openHomepage(
     }
   }
   await expect(
-    page.getByRole("heading", { name: /Select your moving type|請選擇您的搬運服務/ }),
+    page.getByRole("heading", {
+      name: /Select your moving type|請選擇您的搬運服務/,
+    }),
   ).toBeVisible();
 }
 
 export async function selectService(
   page: Page,
-  service:
-    | "standard"
-    | "corporate"
-    | "van-rental"
-    | "disposal"
-    | "overseas",
+  service: "standard" | "corporate" | "van-rental" | "disposal" | "overseas",
 ): Promise<void> {
   const heading =
     service === "standard"
@@ -76,7 +73,9 @@ export async function expectVanRentalDownloadDialog(page: Page): Promise<void> {
   await expect(
     page.getByRole("heading", { name: movingLabels.downloadDialogTitle }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: movingLabels.downloadApp })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: movingLabels.downloadApp }),
+  ).toBeVisible();
   await page.getByRole("button", { name: movingLabels.gotIt }).click();
   await expect(
     page.getByRole("heading", { name: movingLabels.downloadDialogTitle }),
