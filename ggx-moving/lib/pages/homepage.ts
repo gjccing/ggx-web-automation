@@ -83,6 +83,15 @@ export async function expectVanRentalDownloadDialog(page: Page): Promise<void> {
   ).toBeHidden();
 }
 
+export async function readStandardMovingBody1(page: Page): Promise<string> {
+  const card = page
+    .getByRole("heading", { name: movingLabels.standardMoving, level: 2 })
+    .locator("xpath=ancestor::div[contains(@class,'text-dark-100')][1]");
+  const body1 = card.locator("div.caption.whitespace-pre-line").first();
+  await expect(body1).toBeVisible();
+  return (await body1.innerText()).trim();
+}
+
 export async function switchLanguage(
   page: Page,
   target: "en-HK" | "zh-HK",
