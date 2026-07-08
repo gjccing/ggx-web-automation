@@ -20,7 +20,7 @@ GoGoX Moving is a consumer-facing Next.js web app for booking moving and related
 | Role | Capabilities | Notes |
 |------|--------------|-------|
 | Anonymous visitor | Browse services, submit quote/booking forms | No login on staging |
-| Embedded (in-app WebView) | Same flows with header hidden; van rental uses in-app booking CTA | Detected via `useEmbedded()` hook |
+| Embedded (in-app WebView) | Same flows with header hidden; van rental uses in-app booking CTA | Detected via `useEmbedded()` hook; enable with `?embedded=true` on first load — persists across wizard navigation even after the query drops from the URL |
 
 ## Core flows
 
