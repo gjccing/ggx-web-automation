@@ -60,3 +60,128 @@ export async function expectCategoryTabsPinned(
   expect(topAfter).toBeGreaterThanOrEqual(0);
   expect(topAfter).toBeLessThan(MOBILE_VIEWPORT.height);
 }
+
+/**
+ * The item picker groups items under section headers that mirror the category
+ * tabs, in this order. Scrolling a section to the top of the list should mark
+ * the matching tab as active (BET-4358).
+ */
+export const CATEGORY_ORDER = [
+  "Common",
+  "Appliances",
+  "Furniture",
+  "Others",
+] as const;
+
+export type CategoryName = (typeof CATEGORY_ORDER)[number];
+
+/** Accessible name of the currently active (aria-selected) category tab. */
+export async function activeCategoryTabName(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const tab = [...document.querySelectorAll('[role="tab"]')]
+      .filter((t) => (t.textContent ?? "").trim().length > 0)
+      .find((t) => t.getAttribute("aria-selected") === "true");
+    return tab ? (tab.textContent ?? "").trim() : null;
+  });
+}
+
+/**
+ * Offset (px) of each category section header measured from the top of the
+ * scrollable item list. Used to scroll a given section to the top so its tab
+ * should become active.
+ */
+export async function categorySectionOffsets(
+  page: Page,
+): Promise<{ name: string; offset: number }[]> {
+  return page.evaluate((names: readonly string[]) => {
+    const list = [...document.querySelectorAll<HTMLElement>("*")]
+      .filter((el) => {
+        const cs = getComputedStyle(el);
+        return (
+          (cs.overflowY === "auto" || cs.overflowY === "scroll") &&
+          el.scrollHeight > el.clientHeight + 5
+        );
+      })
+      .sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+    if (!list) throw new Error("No scrollable item list found on items-to-move");
+    const listTop = list.getBoundingClientRect().top;
+    return names.map((name) => {
+      const header = [...list.querySelectorAll<HTMLElement>("div")].find(
+        (el) =>
+          (el.textContent ?? "").trim() === name &&
+          el.querySelectorAll("div").length === 0,
+      );
+      if (!header) throw new Error(`Section header "${name}" not found`);
+      return {
+        name,
+        offset: Math.round(
+          header.getBoundingClientRect().top - listTop + list.scrollTop,
+        ),
+      };
+    });
+  }, CATEGORY_ORDER as readonly string[]);
+}
+
+/**
+ * Smoothly scrolls the item list to a target scrollTop in small steps so the
+ * section headers actually cross the top of the viewport. The active-tab
+ * indicator is driven by an IntersectionObserver, which only fires while the
+ * headers move — an instant `scrollTop` jump can skip the observer entirely.
+ */
+export async function smoothScrollItemsList(
+  page: Page,
+  target: number,
+): Promise<void> {
+  await page.evaluate(async (target: number) => {
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const list = [...document.querySelectorAll<HTMLElement>("*")]
+      .filter((el) => {
+        const cs = getComputedStyle(el);
+        return (
+          (cs.overflowY === "auto" || cs.overflowY === "scroll") &&
+          el.scrollHeight > el.clientHeight + 5
+        );
+      })
+      .sort((a, b) => b.scrollHeight - a.scrollHeight)[0];
+    if (!list) throw new Error("No scrollable item list found on items-to-move");
+    const max = list.scrollHeight - list.clientHeight;
+    const clamped = Math.max(0, Math.min(max, target));
+    const step = clamped >= list.scrollTop ? 60 : -60;
+    let guard = 0;
+    while (
+      ((step > 0 && list.scrollTop < clamped) ||
+        (step < 0 && list.scrollTop > clamped)) &&
+      guard++ < 500
+    ) {
+      list.scrollTop += step;
+      await sleep(16);
+    }
+    list.scrollTop = clamped;
+    await sleep(200);
+  }, target);
+}
+
+/**
+ * Verifies the active category tab tracks the section scrolled to the top of the
+ * list, visiting the sections in `order`. Used for both scroll directions so a
+ * scroll-up sweep must mirror a scroll-down sweep (BET-4358).
+ */
+export async function expectActiveTabTracksSections(
+  page: Page,
+  order: readonly string[],
+): Promise<void> {
+  const offsets = await categorySectionOffsets(page);
+  const offsetByName = new Map(offsets.map((o) => [o.name, o.offset]));
+
+  for (const name of order) {
+    const offset = offsetByName.get(name);
+    if (offset === undefined) {
+      throw new Error(`Missing offset for section "${name}"`);
+    }
+    // Align the section header just below the top of the list viewport.
+    await smoothScrollItemsList(page, offset - 4);
+    await expect
+      .poll(() => activeCategoryTabName(page), { timeout: 6_000 })
+      .toBe(name);
+  }
+}
