@@ -20,6 +20,8 @@ export async function openHomepage(
         "corporate-moving-services",
         "overseas-moving",
         "utm",
+        "created-at",
+        "phone",
         "std-moving-created-at",
         "std-moving-phone",
         "disposal-only-created-at",

@@ -6,7 +6,35 @@ import { movingLabels } from "../labels.js";
 
 export async function selectMoveTime(page: Page, timeLabel = "9:00 am"): Promise<void> {
   await page.getByRole("button", { name: movingLabels.time }).click();
-  await page.getByRole("menuitem", { name: timeLabel }).click();
+  // Click the option button (data-value) — MenuItem wrapper clicks do not always fire onClick.
+  await page.locator(`[data-value="${timeLabel}"]`).click();
+  // Trigger accessible name includes the Chevron Down image alt after selection.
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${timeLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) }),
+  ).toBeVisible();
+  // MovingFormProvider debounces session persist by 300ms and cancels on unmount —
+  // wait until the selected time is actually written before navigating away.
+  await expect
+    .poll(
+      async () => {
+        const raw = await page.evaluate(() => {
+          for (const key of ["std-moving", "disposal-only"]) {
+            const value = sessionStorage.getItem(key);
+            if (!value) continue;
+            try {
+              const parsed = JSON.parse(value) as { time?: string };
+              if (parsed.time) return parsed.time;
+            } catch {
+              /* ignore */
+            }
+          }
+          return "";
+        });
+        return raw;
+      },
+      { timeout: 5_000 },
+    )
+    .toBe(timeLabel);
 }
 
 export async function fillMoveDetailsStep(

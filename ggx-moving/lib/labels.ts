@@ -22,7 +22,7 @@ export const movingLabels = {
   disposalOnly: /^Disposal only$|^純棄置$/,
   overseasMoving: /^Overseas moving$|^移民搬運$/,
   requestSubmitted:
-    /your request has been submitted|申請已提交/i,
+    /your request has been submitted|您的查詢已提交|申請已提交/i,
   english: /^English$|^英文$/,
   traditionalChinese: /^繁體中文$/,
   noLift: /^No lift$|^沒有升降機$/,
