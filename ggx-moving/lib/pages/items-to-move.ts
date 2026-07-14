@@ -1,7 +1,77 @@
 import { expect, type Page } from "@playwright/test";
+import { movingLabels } from "../labels.js";
 
 /** Mobile viewport used for the BET-4357 layout checks (~375px wide phone). */
 export const MOBILE_VIEWPORT = { width: 375, height: 667 } as const;
+
+/** Manual free-text list textarea on items-to-move. */
+export function manualItemsTextbox(page: Page) {
+  return page.getByRole("textbox", {
+    name: /Example:|例如：|Television|電視/i,
+  });
+}
+
+/** Dialog title for discarding manually entered item text (BET-4361). */
+export function discardTextDialog(page: Page) {
+  return page.getByRole("heading", { name: movingLabels.discardTextContent });
+}
+
+/**
+ * Switches from the categorized item picker to the free-text list:
+ * "Already have a list?" → confirm "Enter my own list".
+ */
+export async function switchToManualItemList(page: Page): Promise<void> {
+  await page.getByRole("button", { name: movingLabels.alreadyHaveAList }).click();
+  await page.getByRole("heading", { name: movingLabels.alreadyHaveAList }).waitFor();
+  await page.getByRole("button", { name: movingLabels.enterMyOwnList }).click();
+  await expect(manualItemsTextbox(page)).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.getByRole("button", { name: movingLabels.selectFromList }),
+  ).toBeVisible();
+}
+
+/** Types into the manual item list after switching from the picker. */
+export async function typeManualItemList(
+  page: Page,
+  text: string,
+): Promise<void> {
+  const box = manualItemsTextbox(page);
+  await box.fill(text);
+  await expect(box).toHaveValue(text);
+}
+
+/** Clicks the "Select from list" header control (may open the discard dialog). */
+export async function clickSelectFromList(page: Page): Promise<void> {
+  await page.getByRole("button", { name: movingLabels.selectFromList }).click();
+}
+
+export async function expectDiscardTextDialogVisible(page: Page): Promise<void> {
+  await expect(discardTextDialog(page)).toBeVisible({ timeout: 10_000 });
+  await expect(
+    page.getByRole("button", { name: movingLabels.selectItemsInstead }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: movingLabels.goBack }),
+  ).toBeVisible();
+}
+
+/** Cancels the discard dialog and stays on the manual list. */
+export async function cancelDiscardTextDialog(page: Page): Promise<void> {
+  await page.getByRole("button", { name: movingLabels.goBack }).click();
+  await expect(discardTextDialog(page)).toBeHidden({ timeout: 10_000 });
+}
+
+/** Confirms discarding manual text and returns to the item picker. */
+export async function confirmDiscardTextDialog(page: Page): Promise<void> {
+  await page
+    .getByRole("button", { name: movingLabels.selectItemsInstead })
+    .click();
+  await expect(discardTextDialog(page)).toBeHidden({ timeout: 10_000 });
+  await expect(
+    page.getByRole("button", { name: movingLabels.alreadyHaveAList }),
+  ).toBeVisible({ timeout: 10_000 });
+  await expect(manualItemsTextbox(page)).toHaveCount(0);
+}
 
 /**
  * The category tab strip on items-to-move ("Common / Appliances / Furniture /

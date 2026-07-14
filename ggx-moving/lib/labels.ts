@@ -30,4 +30,10 @@ export const movingLabels = {
   noWalking: /^No walking needed$|^無需步行$/,
   downloadDialogTitle:
     /Download GoGoX app to place your order|下載 GoGoX 應用程式以落單/,
+  alreadyHaveAList: /^Already have a list\?$|^已有清單[？?]$/,
+  enterMyOwnList: /^Enter my own list$|^自行輸入清單$/,
+  selectFromList: /^Select from list$|^從清單選擇$/,
+  discardTextContent: /Discard text content|捨棄文字內容/i,
+  selectItemsInstead: /^Select items instead$|^改為選擇物品$/,
+  goBack: /^Go back$|^返回$/,
 };
