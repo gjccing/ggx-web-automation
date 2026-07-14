@@ -44,6 +44,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
+  // Keep visual baselines outside .features-gen (gitignored) so they can be committed.
+  snapshotPathTemplate: '{projectName}/snapshots/{arg}{ext}',
+  expect: {
+    toHaveScreenshot: {
+      animations: 'disabled',
+      maxDiffPixelRatio: 0.03,
+    },
+  },
   use: {
     ...devices['Desktop Chrome'],
     trace: 'on-first-retry',
