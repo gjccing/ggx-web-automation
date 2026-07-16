@@ -107,9 +107,31 @@ async function markFixedFeeInfoIcon(
     const fixed = [...document.querySelectorAll("p")].find((p) =>
       new RegExp(pattern, "i").test(p.textContent ?? ""),
     );
-    const row = fixed?.closest("div")?.parentElement?.parentElement;
-    const svg = row?.parentElement?.querySelector("svg.elEQsj");
-    svg?.setAttribute("data-testid", "fixed-fee-info-icon");
+    if (!fixed) return;
+
+    const textRect = fixed.getBoundingClientRect();
+    let node: HTMLElement | null = fixed;
+    let best: SVGElement | null = null;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let depth = 0; depth < 8 && node; depth++) {
+      for (const svg of node.querySelectorAll("svg")) {
+        const rect = svg.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) continue;
+        // Info icon sits on the same row, to the right of the fixed-fee label.
+        const sameRow = Math.abs(rect.top - textRect.top) < 24;
+        const toTheRight = rect.left >= textRect.left - 4;
+        if (!sameRow || !toTheRight) continue;
+        const score = Math.abs(rect.top - textRect.top) + (rect.left - textRect.left);
+        if (score < bestScore) {
+          bestScore = score;
+          best = svg;
+        }
+      }
+      node = node.parentElement;
+    }
+
+    best?.setAttribute("data-testid", "fixed-fee-info-icon");
   }, headingPattern);
 }
 
