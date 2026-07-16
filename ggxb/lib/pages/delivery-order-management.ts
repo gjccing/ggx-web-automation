@@ -1,4 +1,6 @@
 import { expect, type Page } from "@playwright/test";
+import { setListDateRange } from "./date-range-filter.js";
+import { changeOrderStatusFilter } from "./order-management-download.js";
 
 function orderIdHeader(page: Page) {
   return page.getByRole("heading", { name: /Order ID/i });
@@ -6,6 +8,32 @@ function orderIdHeader(page: Page) {
 
 export async function expectOnDeliveryOrderDetail(page: Page): Promise<void> {
   await expect(orderIdHeader(page)).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * On `/delivery/order-management`, pin the visual-smoke date window, filter
+ * Completed, and open the first order id (opens order-detail drawer).
+ */
+export async function openFirstCompletedDeliveryOrder(
+  page: Page,
+): Promise<void> {
+  await setListDateRange(page);
+  await changeOrderStatusFilter(
+    page,
+    "delivery-order-filter-dropdown",
+    "Completed",
+  );
+  await page.waitForTimeout(2_000);
+  const loadingDialog = page.getByRole("dialog").filter({ hasText: /Loading/i });
+  if (await loadingDialog.isVisible().catch(() => false)) {
+    await expect(loadingDialog).toBeHidden({ timeout: 30_000 });
+  }
+
+  // Delivery ids look like `#dMywdg` / `#y4yR_g` (not SI-style).
+  const orderId = page.getByText(/^#[A-Za-z0-9_]{5,10}$/).first();
+  await expect(orderId).toBeVisible({ timeout: 30_000 });
+  await orderId.click();
+  await expectOnDeliveryOrderDetail(page);
 }
 
 export async function getDeliveryOrderId(page: Page): Promise<string> {

@@ -47,8 +47,10 @@ GGXB_SG_DA_USER_PASSWORD=
 ```
 regression/
   smoke/
-    index.feature
-    index.steps.ts
+    index.feature       # HTTP / title load check
+    visual.feature      # full-page UI screenshot comparison (@visual)
+    *.steps.ts
+snapshots/              # committed Playwright visual baselines
 <ticket-id>/
   *.feature
   *.steps.ts
@@ -60,4 +62,19 @@ Run smoke tests:
 npm run test:e2e -- --project=ggxb
 npm run test:e2e -- --project=ggxb --grep @hk
 npm run test:e2e -- --project=ggxb --grep @sg
+```
+
+Visual smoke (screenshot baselines under `ggxb/snapshots/`):
+
+```bash
+npm run test:e2e -- --project=ggxb --grep @visual
+npm run test:e2e -- --project=ggxb --grep "@visual @hk"
+```
+
+Also covers the transport place-order wizard (route → order details → summary, without Place order) and one Completed transport/delivery order detail.
+
+After intentional UI changes, refresh baselines against the same env as `.env`:
+
+```bash
+npm run test:e2e:update-snapshots -- --project=ggxb --grep @visual
 ```

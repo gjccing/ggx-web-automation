@@ -226,3 +226,4 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 ## Related tests
 
 - `regression/smoke/index.feature` — per-region homepage smoke (`@hk`, `@sg`)
+- `regression/smoke/visual.feature` — `@visual` full-page screenshots: HK public auth (login/signup/recovery), HK authenticated key pages (home, van, delivery, billing, profile), HK transport place-order wizard steps (route / order details / summary, **no Place order**), HK completed transport + delivery order detail, SG login + van order/orders. Baselines in `ggxb/snapshots/`. List pages (`/orders`, `/delivery/order-management`, `/billing-history`) pin date range to **2026-01-01 ~ 2026-06-30**. Wallet / payment Credit / notification / date / map / quote / order-id widgets are masked. Update with `npm run test:e2e:update-snapshots -- --project=ggxb --grep @visual`.
