@@ -1,4 +1,6 @@
 import { expect, type Page } from "@playwright/test";
+import { setListDateRange } from "./date-range-filter.js";
+import { changeOrderStatusFilter } from "./order-management-download.js";
 
 function orderDetailDrawer(page: Page) {
   return page.getByTestId("order-detail-drawer");
@@ -10,6 +12,32 @@ function orderHeader(page: Page) {
 
 export async function expectOnTransportOrderDetail(page: Page): Promise<void> {
   await expect(orderHeader(page)).toBeVisible({ timeout: 30_000 });
+}
+
+/**
+ * On `/orders`, pin the visual-smoke date window, filter Completed, and open
+ * the first order id cell (navigates to `/orders/{id}`).
+ */
+export async function openFirstCompletedTransportOrder(
+  page: Page,
+): Promise<void> {
+  await setListDateRange(page);
+  await changeOrderStatusFilter(
+    page,
+    "van-order-status-filter-dropdown",
+    "Completed",
+  );
+  await page.waitForTimeout(2_000);
+  const loadingDialog = page.getByRole("dialog").filter({ hasText: /Loading/i });
+  if (await loadingDialog.isVisible().catch(() => false)) {
+    await expect(loadingDialog).toBeHidden({ timeout: 30_000 });
+  }
+
+  const orderId = page.getByText(/#[A-Z]{2}\d{7}/).first();
+  await expect(orderId).toBeVisible({ timeout: 30_000 });
+  await orderId.click();
+  await expect(page).toHaveURL(/\/orders\/[A-Z]{2}\d{7}/, { timeout: 30_000 });
+  await expectOnTransportOrderDetail(page);
 }
 
 export async function getTransportOrderId(page: Page): Promise<string> {

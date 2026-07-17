@@ -66,9 +66,20 @@ export async function clickHomepageCta(page: Page): Promise<void> {
   const next = page.getByRole("button", { name: movingLabels.next });
   if (await estimate.isVisible()) {
     await estimate.click();
-    return;
+  } else {
+    await next.click();
   }
-  await next.click();
+  // Home CTA either navigates away from the locale root or opens the van-rental dialog.
+  // Wait so cold compiles / hydration don't race the next URL assertion.
+  await Promise.race([
+    page.waitForURL(
+      (url) => !/\/(en-HK|zh-HK)\/?$/.test(url.pathname),
+      { timeout: 15_000 },
+    ),
+    page
+      .getByRole("heading", { name: movingLabels.downloadDialogTitle })
+      .waitFor({ state: "visible", timeout: 15_000 }),
+  ]);
 }
 
 export async function expectVanRentalDownloadDialog(page: Page): Promise<void> {
