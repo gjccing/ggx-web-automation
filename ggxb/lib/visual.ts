@@ -103,6 +103,18 @@ async function waitForRouteContent(page: Page): Promise<void> {
     });
   }
 
+  // Van place-order: Google Map tiles paint after the form shell.
+  if (path.includes("/van/order")) {
+    await expect(page.getByRole("region", { name: "Map" })).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.locator(".gm-style").first()).toBeVisible({
+      timeout: 30_000,
+    });
+    // Waypoint trash icons only appear on hover — clear hover before capture.
+    await page.mouse.move(0, 0);
+  }
+
   // Dismiss one-time bulk-import modal if it appears.
   if (path.includes("/delivery/bulk-import")) {
     const modal = page.getByRole("dialog");
@@ -148,7 +160,21 @@ export async function defaultVisualMasks(page: Page): Promise<Locator[]> {
 
   // Van place-order wizard: map tiles + live pick-up clock + quote totals drift.
   if (path.includes("/van/order")) {
+    // Prefer the whole map panel so empty vs tiled states compare equal.
+    masks.push(
+      page.getByRole("region", { name: "Map" }).locator("xpath=.."),
+    );
     masks.push(page.locator(".gm-style").first());
+    // Hour / minute defaults follow "now".
+    masks.push(
+      page
+        .getByRole("heading", { name: /^Pick-up time$/i })
+        .locator("xpath=following-sibling::*[1]"),
+    );
+    // Trash affordance on From/To appears only while hovered.
+    masks.push(
+      page.locator('button[aria-label*="delete" i], button[aria-label*="remove" i], [data-testid*="delete" i], [data-testid*="remove" i]'),
+    );
     masks.push(page.getByText(/^\$[\d,]+(?:\.\d{2})?$/));
   }
 
