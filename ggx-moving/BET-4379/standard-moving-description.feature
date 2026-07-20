@@ -1,4 +1,4 @@
-@skip @BET-4379 @homepage @hk @i18n
+@BET-4379 @homepage @hk @i18n
 Feature: BET-4379 Update Standard moving service description copy
 
   Background:

@@ -94,22 +94,31 @@ Then(
       await expect(
         page.getByRole("heading", { name: "請選擇您的搬運服務" }),
       ).toBeVisible();
-      await expect(page.getByRole("button", { name: "中" })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "中", exact: true }),
+      ).toBeVisible();
       return;
     }
     await expect(
       page.getByRole("heading", { name: "Select your moving type" }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "EN" })).toBeVisible();
+    // exact: true — otherwise "EN" also matches Next.js Dev Tools ("Open …")
+    await expect(
+      page.getByRole("button", { name: "EN", exact: true }),
+    ).toBeVisible();
   },
 );
 
 Then("the captured UTM session should include:", async ({ page }, table) => {
-  const utm = await getSessionStorage<Record<string, string>>(page, "utm");
-  expect(utm).not.toBeNull();
+  const expected: Record<string, string> = {};
   for (const row of table.hashes()) {
-    expect(utm?.[row.field]).toBe(row.value);
+    expected[row.field] = row.value;
   }
+  // UTM is written client-side after hydration; the SSR heading can be
+  // visible before sessionStorage is populated (flaky without polling).
+  await expect
+    .poll(async () => getSessionStorage<Record<string, string>>(page, "utm"))
+    .toMatchObject(expected);
 });
 
 Then(
