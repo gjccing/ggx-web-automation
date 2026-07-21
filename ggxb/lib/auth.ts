@@ -24,8 +24,9 @@ export async function switchToEnglishIfAvailable(page: Page): Promise<void> {
 export async function logInAsMasterUser(
   page: Page,
   region: GgxbRegion,
+  credentials?: { email: string; password: string },
 ): Promise<void> {
-  const { email, password } = ggxbTestUser(region);
+  const { email, password } = credentials ?? ggxbTestUser(region);
   await page.locator('[name="email"]').fill(email);
   await page.locator('[name="password"]').fill(password);
   await page.getByRole("button", { name: /Log in|登入/ }).click();
@@ -52,13 +53,16 @@ export async function expectAuthenticatedLanding(page: Page): Promise<void> {
 export async function loginViaUi(
   page: Page,
   region: GgxbRegion,
-  options?: { english?: boolean },
+  options?: {
+    english?: boolean;
+    credentials?: { email: string; password: string };
+  },
 ): Promise<void> {
   await openLoginPage(page, region);
   if (options?.english !== false && region === "hk") {
     await switchToEnglishIfAvailable(page);
   }
-  await logInAsMasterUser(page, region);
+  await logInAsMasterUser(page, region, options?.credentials);
   await expectAuthenticatedLanding(page);
   if (options?.english !== false && region === "hk") {
     await ensureEnglish(page);

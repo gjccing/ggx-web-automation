@@ -1,9 +1,10 @@
 import { expect, type Page } from "@playwright/test";
+import { ggxbBaseUrl, type GgxbRegion } from "../../env.js";
 import { setListDateRange } from "./date-range-filter.js";
 import { changeOrderStatusFilter } from "./order-management-download.js";
 
 function orderIdHeader(page: Page) {
-  return page.getByRole("heading", { name: /Order ID/i });
+  return page.getByRole("heading", { name: /Order ID|柯打/i });
 }
 
 export async function expectOnDeliveryOrderDetail(page: Page): Promise<void> {
@@ -71,7 +72,7 @@ export async function getDeliveryWaypointAddress(
 }
 
 export async function getDeliveryOrderStatus(page: Page): Promise<string> {
-  const statusHeading = page.getByRole("heading", { name: /^Status$/i });
+  const statusHeading = page.getByRole("heading", { name: /^Status$|^狀態$/i });
   if (await statusHeading.isVisible().catch(() => false)) {
     const status = statusHeading
       .locator("xpath=../section//span")
@@ -81,19 +82,19 @@ export async function getDeliveryOrderStatus(page: Page): Promise<string> {
     }
   }
 
-  const cancelled = page.getByText(/Order cancelled/i);
+  const cancelled = page.getByText(/Order cancelled|訂單已取消|已取消/i);
   if (await cancelled.isVisible().catch(() => false)) {
     return (await cancelled.textContent())?.trim() ?? "";
   }
 
-  const placed = page.getByText(/Order placed/i);
+  const placed = page.getByText(/Order placed|已落柯打/i);
   await expect(placed).toBeVisible();
   return (await placed.textContent())?.trim() ?? "";
 }
 
 export async function getDeliveryPaymentMethod(page: Page): Promise<string> {
   const drawer = page.getByTestId("order-detail-drawer");
-  const label = drawer.getByText("Payment method", { exact: true });
+  const label = drawer.getByText(/Payment method|付款方式/i).first();
   await expect(label).toBeVisible();
   const value = label.locator("xpath=following-sibling::p[1]");
   await expect(value).toBeVisible();
@@ -105,7 +106,7 @@ export async function cancelPlacedDeliveryOrder(page: Page): Promise<void> {
   if (await cancelBtn.isVisible().catch(() => false)) {
     await cancelBtn.click();
   } else {
-    await page.getByText("Cancel order", { exact: true }).click();
+    await page.getByText(/Cancel order|取消訂單|取消柯打/i).first().click();
   }
 
   const confirmBtn = page.locator('[data-cy="confirm-canel-btn"]');
@@ -115,7 +116,33 @@ export async function cancelPlacedDeliveryOrder(page: Page): Promise<void> {
     await page.getByRole("button", { name: /^Confirm$|^確認$/ }).click();
   }
 
-  await expect(page.getByText(/Order cancelled/i)).toBeVisible({
+  await expect(page.getByText(/Order cancelled|訂單已取消|已取消/i)).toBeVisible({
     timeout: 30_000,
   });
+}
+
+/**
+ * Open the first pending DP order (wallet holds from prior place-order runs).
+ * Uses a date window that includes today so July staging orders are visible.
+ */
+export async function openFirstPendingDeliveryOrder(
+  page: Page,
+  region: GgxbRegion,
+): Promise<void> {
+  const base = ggxbBaseUrl(region).replace(/\/$/, "");
+  await page.goto(`${base}/delivery/order-management`);
+  await expect(page).toHaveURL(/\/delivery\/order-management(?:\/|$|\?|#)/, {
+    timeout: 30_000,
+  });
+  await setListDateRange(page, "01/07/26", "31/12/26");
+
+  const pending = page.getByText(/^Pending$|^待接單$|^配對中$/).first();
+  if (await pending.isVisible().catch(() => false)) {
+    // Prefer clicking the order id in the same row when possible.
+  }
+
+  const orderId = page.getByText(/^#[A-Za-z0-9_]{5,10}$/).first();
+  await expect(orderId).toBeVisible({ timeout: 30_000 });
+  await orderId.click();
+  await expectOnDeliveryOrderDetail(page);
 }

@@ -5,15 +5,17 @@ import type {
 } from "../test-data/delivery-order.js";
 
 export const deliveryOrderLabels = {
-  placeOrderButton: /^Place order$|^落單$/,
+  placeOrderButton: /^Place order$|^落單$|^確認下單$/,
   customPackageSize: /^Custom$|^自訂$/,
-  dropOffInstant: /^Instant$|^即時$/,
+  dropOffInstant: /^Instant$|^即時/,
 };
 
 async function addressInput(page: Page, waypoint: "from" | "to") {
   const index = waypoint === "from" ? 0 : 1;
   return page
-    .getByPlaceholder(/Building \/ street and number|街道及門牌/i)
+    .getByPlaceholder(
+      /Building \/ street and number|街道及門牌|大廈\/街道|屋苑，大廈/i,
+    )
     .nth(index);
 }
 
@@ -42,12 +44,15 @@ export async function fillDeliveryFromWaypoint(
 ): Promise<void> {
   await setDeliveryWaypointAddress(page, "from", fixture.address);
   await page
-    .getByPlaceholder(/Floor \/ room|樓層/i)
+    .getByPlaceholder(/Floor \/ room|樓層|樓\/室/i)
     .first()
     .fill(fixture.floorRoom);
-  await page.getByPlaceholder(/^Name$|^姓名$/).first().fill(fixture.contactName);
   await page
-    .getByPlaceholder(/Contact number|聯絡電話/i)
+    .getByPlaceholder(/^Name$|^姓名$|^名稱$|^聯絡人/)
+    .first()
+    .fill(fixture.contactName);
+  await page
+    .getByPlaceholder(/Contact number|聯絡電話|聯絡人號碼/i)
     .first()
     .fill(fixture.phone);
 }
@@ -58,12 +63,15 @@ export async function fillDeliveryToWaypoint(
 ): Promise<void> {
   await setDeliveryWaypointAddress(page, "to", fixture.address);
   await page
-    .getByPlaceholder(/Floor \/ room|樓層/i)
+    .getByPlaceholder(/Floor \/ room|樓層|樓\/室/i)
     .nth(1)
     .fill(fixture.floorRoom);
-  await page.getByPlaceholder(/^Name$|^姓名$/).nth(1).fill(fixture.contactName);
   await page
-    .getByPlaceholder(/Contact number|聯絡電話/i)
+    .getByPlaceholder(/^Name$|^姓名$|^名稱$|^聯絡人/)
+    .nth(1)
+    .fill(fixture.contactName);
+  await page
+    .getByPlaceholder(/Contact number|聯絡電話|聯絡人號碼/i)
     .nth(1)
     .fill(fixture.phone);
 }
@@ -73,7 +81,7 @@ export async function fillDeliveryPackageDetails(
   fixture: DeliveryPackageFixture,
 ): Promise<void> {
   const contentInput = page.getByPlaceholder(
-    /e\.g\. electronics, beauty product|例如：電子產品/i,
+    /e\.g\. electronics, beauty product|例如：電子產品|例：電子產品/i,
   );
   await contentInput.fill(fixture.content);
   await contentInput.press("Escape");
@@ -100,7 +108,9 @@ async function ensureDeliveryOrderPlaceable(page: Page): Promise<void> {
     return;
   }
 
-  const insufficientWallet = page.getByText(/wallet balance is insufficient/i);
+  const insufficientWallet = page.getByText(
+    /wallet balance is insufficient|錢包餘額不足|餘額不足/i,
+  );
   if (await insufficientWallet.isVisible().catch(() => false)) {
     const payWithSection = page.locator('[data-testid="main-content"]');
     const cardOption = payWithSection
@@ -119,5 +129,7 @@ export async function clickPlaceDeliveryOrder(page: Page): Promise<void> {
   await page
     .getByRole("button", { name: deliveryOrderLabels.placeOrderButton })
     .click();
-  await expect(page.getByText(/Order placed/i)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Order placed|Delivery was arranged/i)).toBeVisible({
+    timeout: 30_000,
+  });
 }

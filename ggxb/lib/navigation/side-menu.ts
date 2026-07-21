@@ -79,17 +79,23 @@ export async function navigateToTransportOrder(
 export async function navigateToDeliveryOrder(
   page: Page,
   region: GgxbRegion,
+  options?: { locale?: "en" | "zh" },
 ): Promise<void> {
   if (region === "hk") {
-    await ensureEnglish(page);
+    if (options?.locale === "zh") {
+      await ensureTraditionalChinese(page);
+    } else {
+      await ensureEnglish(page);
+    }
   }
 
   const base = ggxbBaseUrl(region).replace(/\/$/, "");
-  const onOrderPage = page.url().includes("/delivery/order");
+  const path = new URL(page.url()).pathname.replace(/\/$/, "");
+  const onOrderPage = path === "/delivery/order";
   if (!onOrderPage) {
     const link = page
       .locator('a[href*="/delivery/order"]')
-      .filter({ hasText: /Place order|Place an order/i })
+      .filter({ hasText: /Place order|Place an order|新增訂單/i })
       .first();
     if (await link.isVisible().catch(() => false)) {
       await link.click();
