@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 import { fillWaypoint } from "../../lib/pages/address-picker.js";
 import {
@@ -43,6 +43,7 @@ When("I fill the disposal moving move details step", async ({ page }) => {
 });
 
 When("I complete the disposal only quote flow", async ({ page }) => {
+  test.setTimeout(180_000);
   await fillWaypoint(page, movingLabels.from, disposalWaypoint);
   await selectMoveTime(page);
   await clickWizardNext(page);

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const BASE_URL_ENV = "GGX_MOVING_BASE_URL";
 const SHEETS_ID_ENV = "GGX_MOVING_GOOGLE_SHEETS_SPREADSHEET_ID";
+const SHEETS_NAME_ENV = "GGX_MOVING_GOOGLE_SHEETS_SHEET_NAME";
 const SERVICE_ACCOUNT_ENV = "GGX_MOVING_GOOGLE_SERVICE_ACCOUNT_JSON_PATH";
 
 const DEFAULT_SHEETS_ID = "11NYD0iBENFqAkah9SP9zUPA_Cm__o8mh9RQh4fIqRgY";
@@ -26,6 +27,12 @@ export function ggxMovingBaseUrl(locale: GgxMovingLocale = "en-HK"): string {
 
 export function ggxMovingSheetsSpreadsheetId(): string {
   return process.env[SHEETS_ID_ENV] ?? DEFAULT_SHEETS_ID;
+}
+
+/** Optional explicit tab name. When unset, order-sheet resolves the gid-0 tab (same as the app). */
+export function ggxMovingSheetsSheetName(): string | undefined {
+  const fromEnv = process.env[SHEETS_NAME_ENV]?.trim();
+  return fromEnv || undefined;
 }
 
 export function ggxMovingGoogleServiceAccountPath(): string {

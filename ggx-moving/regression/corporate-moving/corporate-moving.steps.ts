@@ -1,4 +1,4 @@
-import { expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 import { fillDistrictStreetPair } from "../../lib/pages/address-picker.js";
 import { fillSinglePageContactAndSubmit } from "../../lib/pages/wizard.js";
@@ -37,6 +37,8 @@ When("I fill the corporate moving form except contact fields", async ({ page }) 
 });
 
 When("I complete the corporate moving quote flow", async ({ page }) => {
+  // Sheets POST/PUT can exceed the default 60s when the form fill is slow.
+  test.setTimeout(120_000);
   await fillDistrictStreetPair(page, 0, corporateAddresses.from);
   await fillDistrictStreetPair(page, 1, corporateAddresses.to);
   movingTestContext.orderId = await fillSinglePageContactAndSubmit(page, contact());
