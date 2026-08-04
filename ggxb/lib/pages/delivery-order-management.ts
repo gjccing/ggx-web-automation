@@ -39,7 +39,8 @@ export async function openFirstCompletedDeliveryOrder(
 
 export async function getDeliveryOrderId(page: Page): Promise<string> {
   const text = (await orderIdHeader(page).textContent()) ?? "";
-  const match = text.match(/#([a-zA-Z0-9]{6})/);
+  // Merchant tids look like `nRuyEA` / `_eWhxQ` (alphanumeric + underscore).
+  const match = text.match(/#([A-Za-z0-9_]{5,10})/);
   if (!match) {
     throw new Error(`Could not parse delivery order id from header: ${text}`);
   }
@@ -87,9 +88,57 @@ export async function getDeliveryOrderStatus(page: Page): Promise<string> {
     return (await cancelled.textContent())?.trim() ?? "";
   }
 
+  const accepted = page
+    .getByText(/Accepted by a courier|Accepted by driver|已被司機接單|已接單/i)
+    .first();
+  if (await accepted.isVisible().catch(() => false)) {
+    return (await accepted.textContent())?.trim() ?? "";
+  }
+
   const placed = page.getByText(/Order placed|已落柯打/i);
   await expect(placed).toBeVisible();
   return (await placed.textContent())?.trim() ?? "";
+}
+
+/** Reload order management and reopen the order drawer by merchant tid. */
+export async function reopenDeliveryOrderByTid(
+  page: Page,
+  region: GgxbRegion,
+  tid: string,
+): Promise<void> {
+  const base = ggxbBaseUrl(region).replace(/\/$/, "");
+  await page.goto(`${base}/delivery/order-management`);
+  await expect(page).toHaveURL(/\/delivery\/order-management(?:\/|$|\?|#)/, {
+    timeout: 30_000,
+  });
+  await setListDateRange(page, "01/07/26", "31/12/26");
+
+  const orderId = page.getByText(new RegExp(`^#${tid}$`)).first();
+  await expect(orderId).toBeVisible({ timeout: 30_000 });
+  await orderId.click();
+  await expectOnDeliveryOrderDetail(page);
+}
+
+/**
+ * Click Cancel on an accepted DP order. Expects the cancellation-instruction
+ * `window.alert` (call CS) instead of the pending-order confirm modal / cancel API.
+ */
+export async function cancelAcceptedDeliveryOrderExpectInstruction(
+  page: Page,
+): Promise<string> {
+  const dialogPromise = page.waitForEvent("dialog", { timeout: 15_000 });
+
+  const cancelBtn = page.locator('[data-cy="cancel-order-btn"]');
+  if (await cancelBtn.isVisible().catch(() => false)) {
+    await cancelBtn.click();
+  } else {
+    await page.getByText(/Cancel order|取消訂單|取消柯打/i).first().click();
+  }
+
+  const dialog = await dialogPromise;
+  const message = dialog.message();
+  await dialog.accept();
+  return message;
 }
 
 export async function getDeliveryPaymentMethod(page: Page): Promise<string> {
