@@ -3,6 +3,7 @@ import {
   couponRedeemNotEligibleMessage,
   couponRedeemSuccessMessage,
 } from "../test-data/bet-4372.js";
+import { couponAppliedSuccessToast } from "../test-data/bet-4403.js";
 
 function couponModal(page: Page) {
   return page
@@ -26,6 +27,30 @@ export async function openTransportCouponModal(page: Page): Promise<void> {
     await couponSectionTrigger.click();
   } else {
     await summary.getByText(/^Add$/i).last().click();
+  }
+
+  await expect(page.getByRole("heading", { name: /^Coupons$/i })).toBeVisible({
+    timeout: 15_000,
+  });
+}
+
+/** Opens Coupons only via the top Coupon entry (not the price-breakdown Add link). */
+export async function openTransportCouponModalViaTopEntry(
+  page: Page,
+): Promise<void> {
+  const summary = summaryContainer(page);
+  await expect(summary).toBeVisible({ timeout: 15_000 });
+
+  const topEntryHint = summary.getByText(/Apply to get discount/i);
+  await expect(topEntryHint).toBeVisible({ timeout: 15_000 });
+
+  const couponSectionTrigger = topEntryHint.locator(
+    "xpath=preceding-sibling::*[1]",
+  );
+  if (await couponSectionTrigger.isVisible().catch(() => false)) {
+    await couponSectionTrigger.click();
+  } else {
+    await topEntryHint.click();
   }
 
   await expect(page.getByRole("heading", { name: /^Coupons$/i })).toBeVisible({
@@ -72,8 +97,22 @@ export async function expectTransportCouponAppliedOnSummary(
   page: Page,
   voucherTitle: string,
 ): Promise<void> {
-  await expect(summaryContainer(page).getByText("Coupon applied")).toBeVisible({
+  await expect(
+    summaryContainer(page).getByText("Coupon applied", { exact: true }),
+  ).toBeVisible({
     timeout: 15_000,
   });
-  await expect(summaryContainer(page).getByText(voucherTitle)).toBeVisible();
+  await expect(
+    summaryContainer(page).getByText(voucherTitle, { exact: true }),
+  ).toBeVisible();
+}
+
+export async function expectCouponAppliedSuccessToast(
+  page: Page,
+): Promise<void> {
+  const toast = page.locator(".Toastify__toast-body").filter({
+    hasText: couponAppliedSuccessToast,
+  });
+  await expect(toast.first()).toBeVisible({ timeout: 15_000 });
+  await expect(toast.first()).toHaveText(couponAppliedSuccessToast);
 }
