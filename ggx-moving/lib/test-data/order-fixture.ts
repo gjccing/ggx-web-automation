@@ -64,4 +64,4 @@ export const overseasHongKongDetail = {
   street: "Queen's Road Central 1",
 };
 
-export const ORDER_ID_PATTERN = /^J\d{5}$/;
+export const ORDER_ID_PATTERN = /^J\d{5,}$/;

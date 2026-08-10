@@ -1,10 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { google } from "googleapis";
+import { test } from "@playwright/test";
 import {
   ggxMovingGoogleServiceAccountPath,
   ggxMovingSheetsSheetName,
   ggxMovingSheetsSpreadsheetId,
 } from "../../env.js";
+import FIELD_HEADERS from "./moving-order-field-headers.json" with { type: "json" };
 
 export type SheetOrderRow = {
   service: string;
@@ -12,6 +14,8 @@ export type SheetOrderRow = {
   createdAt: string;
   fromAddress: string;
   toAddress: string;
+  /** Google Drive folder URL written when photos were attached (header 相). */
+  photosFolderUrl: string;
   contactName: string;
   phone: string;
   email: string;
@@ -20,10 +24,21 @@ export type SheetOrderRow = {
   utmCampaign: string;
   utmContent: string;
   utmChannel: string;
+  /** Header row used to resolve values (for assertions after column moves). */
+  headers: string[];
   raw: string[];
 };
 
-function loadSheetsClient() {
+type SheetsClient = ReturnType<typeof google.sheets>;
+
+type PendingColumnSwap = {
+  headerA: string;
+  headerB: string;
+};
+
+let pendingColumnSwap: PendingColumnSwap | null = null;
+
+function loadSheetsClient(write = false): SheetsClient {
   const credentialsPath = ggxMovingGoogleServiceAccountPath();
   if (!existsSync(credentialsPath)) {
     throw new Error(
@@ -34,7 +49,11 @@ function loadSheetsClient() {
   const credentials = JSON.parse(readFileSync(credentialsPath, "utf8"));
   const auth = new google.auth.GoogleAuth({
     credentials,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
+    scopes: [
+      write
+        ? "https://www.googleapis.com/auth/spreadsheets"
+        : "https://www.googleapis.com/auth/spreadsheets.readonly",
+    ],
   });
   return google.sheets({ version: "v4", auth });
 }
@@ -44,23 +63,75 @@ function loadSheetsClient() {
  * Bare ranges like `A:AZ` follow tab *index* order, which can be a decoy sheet
  * (e.g. Sheet5) placed before the real gid-0 Sheet1.
  */
-async function resolveOrdersSheetTitle(
-  sheets: ReturnType<typeof loadSheetsClient>,
+async function resolveOrdersSheet(
+  sheets: SheetsClient,
   spreadsheetId: string,
-): Promise<string> {
+): Promise<{ title: string; sheetId: number }> {
   const configured = ggxMovingSheetsSheetName();
-  if (configured) return configured;
-
   const meta = await sheets.spreadsheets.get({ spreadsheetId });
   const byGid = meta.data.sheets?.find((s) => s.properties?.sheetId === 0);
+  if (configured) {
+    const byTitle = meta.data.sheets?.find(
+      (s) => s.properties?.title === configured,
+    );
+    const sheetId = byTitle?.properties?.sheetId;
+    if (sheetId == null) {
+      throw new Error(
+        `Configured sheet "${configured}" not found in spreadsheet ${spreadsheetId}`,
+      );
+    }
+    return { title: configured, sheetId };
+  }
+
   const title = byGid?.properties?.title;
-  if (!title) {
+  const sheetId = byGid?.properties?.sheetId;
+  if (!title || sheetId == null) {
     throw new Error(
       `No sheet with gid 0 in spreadsheet ${spreadsheetId}. ` +
         `Set GGX_MOVING_GOOGLE_SHEETS_SHEET_NAME explicitly.`,
     );
   }
-  return title;
+  return { title, sheetId };
+}
+
+function quotedSheetRange(title: string, a1: string): string {
+  return `'${title.replace(/'/g, "''")}'!${a1}`;
+}
+
+function defaultIndexForHeader(header: string): number {
+  return (FIELD_HEADERS as string[]).indexOf(header);
+}
+
+function cellByHeader(
+  row: string[],
+  headers: string[],
+  header: string,
+): string {
+  const byName = headers.indexOf(header);
+  const index = byName >= 0 ? byName : defaultIndexForHeader(header);
+  if (index < 0) return "";
+  return row[index] ?? "";
+}
+
+function mapSheetRow(row: string[], headers: string[]): SheetOrderRow {
+  return {
+    service: cellByHeader(row, headers, "service"),
+    orderId: cellByHeader(row, headers, "lead_id"),
+    createdAt: cellByHeader(row, headers, "created_at"),
+    fromAddress: cellByHeader(row, headers, "起點"),
+    toAddress: cellByHeader(row, headers, "終點"),
+    photosFolderUrl: cellByHeader(row, headers, "相"),
+    contactName: cellByHeader(row, headers, "contact_name"),
+    phone: cellByHeader(row, headers, "whatsapp_phone_number"),
+    email: cellByHeader(row, headers, "email"),
+    utmMedium: cellByHeader(row, headers, "utm_medium"),
+    utmSource: cellByHeader(row, headers, "utm_source"),
+    utmCampaign: cellByHeader(row, headers, "utm_campaign"),
+    utmContent: cellByHeader(row, headers, "utm_content"),
+    utmChannel: cellByHeader(row, headers, "Acquisition Channel"),
+    headers,
+    raw: row,
+  };
 }
 
 export async function fetchOrderRowByOrderId(
@@ -68,10 +139,10 @@ export async function fetchOrderRowByOrderId(
   retries = 8,
   delayMs = 2_000,
 ): Promise<SheetOrderRow> {
-  const sheets = loadSheetsClient();
+  const sheets = loadSheetsClient(false);
   const spreadsheetId = ggxMovingSheetsSpreadsheetId();
-  const sheetTitle = await resolveOrdersSheetTitle(sheets, spreadsheetId);
-  const range = `'${sheetTitle.replace(/'/g, "''")}'!A:AZ`;
+  const { title } = await resolveOrdersSheet(sheets, spreadsheetId);
+  const range = quotedSheetRange(title, "A:AZ");
 
   for (let attempt = 0; attempt < retries; attempt += 1) {
     const response = await sheets.spreadsheets.values.get({
@@ -79,33 +150,172 @@ export async function fetchOrderRowByOrderId(
       range,
     });
     const rows = response.data.values ?? [];
-    const match = [...rows].reverse().find((row) => row[1] === orderId);
+    const headers = (rows[0] ?? []).map((cell) => String(cell ?? ""));
+    const leadIdx = (() => {
+      const byName = headers.indexOf("lead_id");
+      return byName >= 0 ? byName : 1;
+    })();
+    const match = [...rows]
+      .slice(1)
+      .reverse()
+      .find((row) => (row[leadIdx] ?? "") === orderId);
     if (match) {
-      return mapSheetRow(match);
+      return mapSheetRow(match.map((cell) => String(cell ?? "")), headers);
     }
     await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
   throw new Error(
-    `Order ${orderId} not found in spreadsheet ${spreadsheetId} (sheet ${sheetTitle})`,
+    `Order ${orderId} not found in spreadsheet ${spreadsheetId} (sheet ${title})`,
   );
 }
 
-function mapSheetRow(row: string[]): SheetOrderRow {
-  return {
-    service: row[0] ?? "",
-    orderId: row[1] ?? "",
-    createdAt: row[2] ?? "",
-    fromAddress: row[3] ?? "",
-    toAddress: row[9] ?? "",
-    contactName: row[24] ?? "",
-    phone: row[25] ?? "",
-    email: row[26] ?? "",
-    utmMedium: row[27] ?? "",
-    utmSource: row[28] ?? "",
-    utmCampaign: row[29] ?? "",
-    utmContent: row[30] ?? "",
-    utmChannel: row[31] ?? "",
-    raw: row,
-  };
+/** Fail fast when sheet layout mutations could race other sheet tests. */
+export function assertSingleWorkerForSheetMutation(): void {
+  const workers = test.info().config.workers;
+  if (workers !== 1) {
+    throw new Error(
+      `Sheet column mutation requires Playwright workers=1 (got ${workers}). ` +
+        "Do not run @exclusive-sheet scenarios in parallel with other sheet tests.",
+    );
+  }
+}
+
+export function pendingOrderSheetColumnSwap(): PendingColumnSwap | null {
+  return pendingColumnSwap;
+}
+
+async function readHeaderRow(
+  sheets: SheetsClient,
+  spreadsheetId: string,
+  title: string,
+): Promise<string[]> {
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: quotedSheetRange(title, "1:1"),
+  });
+  return (response.data.values?.[0] ?? []).map((cell) => String(cell ?? ""));
+}
+
+async function moveColumnsSwapByCurrentIndices(
+  sheets: SheetsClient,
+  spreadsheetId: string,
+  sheetId: number,
+  indexLeft: number,
+  indexRight: number,
+): Promise<void> {
+  let i = indexLeft;
+  let j = indexRight;
+  if (i === j) return;
+  if (i > j) [i, j] = [j, i];
+
+  // Move j → i, then original i (now i+1) → j+1.
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          moveDimension: {
+            source: {
+              sheetId,
+              dimension: "COLUMNS",
+              startIndex: j,
+              endIndex: j + 1,
+            },
+            destinationIndex: i,
+          },
+        },
+      ],
+    },
+  });
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          moveDimension: {
+            source: {
+              sheetId,
+              dimension: "COLUMNS",
+              startIndex: i + 1,
+              endIndex: i + 2,
+            },
+            destinationIndex: j + 1,
+          },
+        },
+      ],
+    },
+  });
+}
+
+/**
+ * Swap two columns (header + all data) by header name.
+ * Used to verify the app resolves write targets by name, not fixed index.
+ */
+export async function swapOrderSheetColumnsByHeader(
+  headerA: string,
+  headerB: string,
+): Promise<{ indexA: number; indexB: number }> {
+  if (pendingColumnSwap) {
+    throw new Error(
+      `Cannot swap columns while a previous swap is still pending: ` +
+        `${pendingColumnSwap.headerA} ↔ ${pendingColumnSwap.headerB}`,
+    );
+  }
+  if (headerA === headerB) {
+    throw new Error("Cannot swap a column with itself");
+  }
+
+  const sheets = loadSheetsClient(true);
+  const spreadsheetId = ggxMovingSheetsSpreadsheetId();
+  const { title, sheetId } = await resolveOrdersSheet(sheets, spreadsheetId);
+  const headers = await readHeaderRow(sheets, spreadsheetId, title);
+  const i = headers.indexOf(headerA);
+  const j = headers.indexOf(headerB);
+  if (i < 0 || j < 0) {
+    throw new Error(
+      `Cannot swap missing headers "${headerA}" (${i}) / "${headerB}" (${j}) ` +
+        `on sheet ${title}`,
+    );
+  }
+
+  await moveColumnsSwapByCurrentIndices(sheets, spreadsheetId, sheetId, i, j);
+
+  const after = await readHeaderRow(sheets, spreadsheetId, title);
+  const indexA = after.indexOf(headerA);
+  const indexB = after.indexOf(headerB);
+  if (indexA < 0 || indexB < 0 || indexA === indexB) {
+    throw new Error(
+      `Column swap did not relocate headers "${headerA}" / "${headerB}"`,
+    );
+  }
+
+  pendingColumnSwap = { headerA, headerB };
+  return { indexA, indexB };
+}
+
+/** Restore a previous {@link swapOrderSheetColumnsByHeader} (no-op if none pending). */
+export async function restorePendingOrderSheetColumnSwap(): Promise<void> {
+  if (!pendingColumnSwap) return;
+
+  const { headerA, headerB } = pendingColumnSwap;
+  const sheets = loadSheetsClient(true);
+  const spreadsheetId = ggxMovingSheetsSpreadsheetId();
+  const { title, sheetId } = await resolveOrdersSheet(sheets, spreadsheetId);
+  const headers = await readHeaderRow(sheets, spreadsheetId, title);
+  const i = headers.indexOf(headerA);
+  const j = headers.indexOf(headerB);
+  if (i < 0 || j < 0) {
+    throw new Error(
+      `Cannot restore swap; headers missing: "${headerA}" (${i}) / "${headerB}" (${j})`,
+    );
+  }
+
+  await moveColumnsSwapByCurrentIndices(sheets, spreadsheetId, sheetId, i, j);
+  pendingColumnSwap = null;
+}
+
+/** Fixed (canonical) indices from the seeded header list — for proving a reorder happened. */
+export function canonicalHeaderIndex(header: string): number {
+  return defaultIndexForHeader(header);
 }

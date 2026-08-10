@@ -191,6 +191,7 @@ No test-account env vars — all flows are anonymous.
 
 - `regression/smoke/index.feature` — homepage loads
 - `regression/smoke/visual.feature` — `@visual` full-page screenshots: homepage (en/zh), service cards, van-rental dialog, WaypointField, std-moving wizard + items fullscreen + extras expanded, submitted page, disposal, corporate, overseas HK/Canada detail fields. Baselines in `ggx-moving/snapshots/`. Date / price / WhatsApp widgets are masked. Update with `npm run test:e2e:update-snapshots -- --project=ggx-moving --grep @visual`.
+- `BET-4392/sheet-column-by-name.feature` — `@exclusive-sheet` swaps Moving Orders columns (`起點`/`終點`), places a Standard order, asserts values by header name (and that fixed indexes show the swap), then restores columns. Requires `workers=1`; do not run in parallel with other sheet writers.
 
 ## E2E selector hints
 
