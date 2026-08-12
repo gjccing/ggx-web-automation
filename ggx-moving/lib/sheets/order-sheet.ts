@@ -170,6 +170,59 @@ export async function fetchOrderRowByOrderId(
   );
 }
 
+/**
+ * Delete every Moving Orders row whose lead_id matches `orderId`.
+ * Deletes bottom-up so row indices stay valid. Returns how many rows were removed.
+ */
+export async function deleteOrderRowsByOrderId(orderId: string): Promise<number> {
+  if (!orderId) return 0;
+
+  const sheets = loadSheetsClient(true);
+  const spreadsheetId = ggxMovingSheetsSpreadsheetId();
+  const { title, sheetId } = await resolveOrdersSheet(sheets, spreadsheetId);
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: quotedSheetRange(title, "A:AZ"),
+  });
+  const rows = response.data.values ?? [];
+  const headers = (rows[0] ?? []).map((cell) => String(cell ?? ""));
+  const leadIdx = (() => {
+    const byName = headers.indexOf("lead_id");
+    return byName >= 0 ? byName : 1;
+  })();
+
+  // values[i] is sheet row i (0-based); header is row 0.
+  const rowIndexes: number[] = [];
+  for (let i = 1; i < rows.length; i += 1) {
+    if (String(rows[i]?.[leadIdx] ?? "") === orderId) {
+      rowIndexes.push(i);
+    }
+  }
+  if (rowIndexes.length === 0) return 0;
+
+  rowIndexes.sort((a, b) => b - a);
+  for (const startIndex of rowIndexes) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            deleteDimension: {
+              range: {
+                sheetId,
+                dimension: "ROWS",
+                startIndex,
+                endIndex: startIndex + 1,
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+  return rowIndexes.length;
+}
+
 /** Fail fast when sheet layout mutations could race other sheet tests. */
 export function assertSingleWorkerForSheetMutation(): void {
   const workers = test.info().config.workers;

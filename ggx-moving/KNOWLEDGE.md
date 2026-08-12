@@ -168,8 +168,16 @@ No test-account env vars — all flows are anonymous.
 |----------|--------|---------|
 | `/api/order/new/{service}` | POST | Create order row (service: `Standard`, etc.) |
 | `/api/order/{orderId}` | PUT | Write form data row to sheet |
-| `/api/upload/folder` | POST | Create Google Drive folder for photos |
-| `/api/upload/folder/{folderId}` | POST | Upload image files |
+| `/api/upload/tmp` | POST | Upload selected images to a shared Drive **tmp** folder immediately on pick |
+| `/api/upload/folder` | POST | Create per-order Google Drive folder on submit |
+| `/api/upload/tmp/{folderId}` | PUT | Move tmp file IDs into the order folder (body: `{ fileIds }`) |
+| `/api/upload/folder/{folderId}` | POST | Legacy direct upload into a folder (superseded by tmp + move) |
+
+### Photo upload flow (extra services)
+
+1. User picks images on **Upload photos** → client `POST /api/upload/tmp` → Drive file IDs stored in form as `upload_photos` (Googleusercontent URLs).
+2. On order submit → create order folder → `PUT /api/upload/tmp/{folderId}` moves those files → sheet column for photos gets `https://drive.google.com/drive/folders/{folderId}`.
+3. Covered by `regression/std-moving/upload-photos.feature` (`@upload-photos`).
 
 ## Known quirks (staging)
 
@@ -177,6 +185,8 @@ No test-account env vars — all flows are anonymous.
 - Van/truck rental on web shows Download App dialog instead of in-browser flow
 - Back button on wizard uses `history.back()` or `router.replace("/")` at entry point
 - Google Tag Manager: `GTM-TZF63DC`
+- Mixpanel (`mixpanel-browser`): disposal submit fires `disposal_only_submitted` with `collection_location`, `preferred_time` (selected time slot), `remarks_length`, `total_photos_uploaded`, `total_items_counted`, `builder_time_secs` (BET-4135 / BET-4097)
+- Mixpanel items builder: completing the picker (Next) fires `items_builder_completed`; `total_items_counted` is the **sum of quantities** (BET-4141), not unique SKU count
 - Photo upload blob errors trigger `ImageOutdatedCTADialog` with retry/skip options
 - Header hidden when embedded in GoGoX app WebView
 
@@ -191,7 +201,11 @@ No test-account env vars — all flows are anonymous.
 
 - `regression/smoke/index.feature` — homepage loads
 - `regression/smoke/visual.feature` — `@visual` full-page screenshots: homepage (en/zh), service cards, van-rental dialog, WaypointField, std-moving wizard + items fullscreen + extras expanded, submitted page, disposal, corporate, overseas HK/Canada detail fields. Baselines in `ggx-moving/snapshots/`. Date / price / WhatsApp widgets are masked. Update with `npm run test:e2e:update-snapshots -- --project=ggx-moving --grep @visual`.
+- `regression/std-moving/upload-photos.feature` — `@upload-photos` select-image uploads to tmp immediately; submit moves files into the order Drive folder and writes the folder URL to the sheet.
 - `BET-4392/sheet-column-by-name.feature` — `@exclusive-sheet` swaps Moving Orders columns (`起點`/`終點`), places a Standard order, asserts values by header name (and that fixed indexes show the swap), then restores columns. Requires `workers=1`; do not run in parallel with other sheet writers.
+- `BET-4135/disposal-only-submitted.feature` — `@tracking` submits Disposal only and asserts Mixpanel `disposal_only_submitted` required properties via network capture.
+- `BET-4141/items-builder-total-counted.feature` — `@tracking` selects qty 2 of one Furniture item and asserts Mixpanel `items_builder_completed.total_items_counted === 2`.
+- Sheet-writing scenarios that set `movingTestContext.orderId` delete that Moving Orders row in a shared `After` hook (`regression/common/moving-common.steps.ts`) so staging `lead_id` max stays sequential.
 
 ## E2E selector hints
 

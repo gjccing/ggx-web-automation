@@ -129,7 +129,12 @@ export async function clickPlaceDeliveryOrder(page: Page): Promise<void> {
   await page
     .getByRole("button", { name: deliveryOrderLabels.placeOrderButton })
     .click();
-  await expect(page.getByText(/Order placed|Delivery was arranged/i)).toBeVisible({
+  await expect(
+    page
+      .getByTestId("order-detail-drawer")
+      .getByText(/Order placed|已落柯打|Delivery was arranged/i)
+      .first(),
+  ).toBeVisible({
     timeout: 30_000,
   });
 }

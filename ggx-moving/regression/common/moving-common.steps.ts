@@ -7,12 +7,24 @@ import {
   switchLanguage,
 } from "../../lib/pages/homepage.js";
 import { getSessionStorage } from "../../lib/session.js";
+import { deleteOrderRowsByOrderId } from "../../lib/sheets/order-sheet.js";
 import {
   movingTestContext,
   resetMovingTestContext,
 } from "../../lib/test-data/test-context.js";
 
-const { Given, When, Then } = createBdd();
+const { Given, When, Then, After } = createBdd();
+
+/** Drop the order row this scenario wrote so lead_id max stays sequential. */
+After(async () => {
+  const orderId = movingTestContext.orderId;
+  if (!orderId) return;
+  try {
+    await deleteOrderRowsByOrderId(orderId);
+  } finally {
+    movingTestContext.orderId = undefined;
+  }
+});
 
 function expectSessionFieldsCleared(
   values: Record<string, unknown> | null,

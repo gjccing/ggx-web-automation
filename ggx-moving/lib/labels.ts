@@ -36,4 +36,5 @@ export const movingLabels = {
   discardTextContent: /Discard text content|捨棄文字內容/i,
   selectItemsInstead: /^Select items instead$|^改為選擇物品$/,
   goBack: /^Go back$|^返回$/,
+  uploadPhotosTitle: /^Upload photos$|^上載相片$/,
 };

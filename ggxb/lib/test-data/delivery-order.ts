@@ -67,5 +67,5 @@ export const deliveryOrderFixture: Record<
   },
 };
 
-/** Delivery order IDs look like `nRuyEA` / `_eWhxQ` after `#`. */
-export const DELIVERY_ORDER_ID_PATTERN = /^[A-Za-z0-9_]{5,10}$/;
+/** Delivery order IDs look like `nRuyEA` / `_eWhxQ` / `7dfE-w` after `#`. */
+export const DELIVERY_ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{5,10}$/;

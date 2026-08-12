@@ -255,3 +255,63 @@ export async function expectActiveTabTracksSections(
       .toBe(name);
   }
 }
+
+/** Category tab label (en-HK / zh-HK). */
+export const CATEGORY_TAB_NAME: Record<CategoryName, RegExp> = {
+  Common: /^Common$|^常見$/,
+  Appliances: /^Appliances$|^電器$/,
+  Furniture: /^Furniture$|^傢俬$/,
+  Others: /^Others$|^其他$/,
+};
+
+/** Clicks a category tab so its section scrolls into view. */
+export async function openItemsCategory(
+  page: Page,
+  category: CategoryName,
+): Promise<void> {
+  const tab = page.getByRole("tab", { name: CATEGORY_TAB_NAME[category] });
+  await expect(tab).toBeVisible({ timeout: 10_000 });
+  await tab.click();
+  await expect
+    .poll(() => activeCategoryTabName(page), { timeout: 6_000 })
+    .toBe(category);
+}
+
+/**
+ * Card row for a simple (non-variant) catalog item. Prefer exact name match so
+ * "Bed frame" does not match "Hydraulic bed frame"-style cousins.
+ */
+export function simpleItemRow(page: Page, itemName: string) {
+  return page
+    .locator("div.bg-white")
+    .filter({ has: page.getByText(itemName, { exact: true }) })
+    .filter({ has: page.getByLabel("Increment") })
+    .first();
+}
+
+/** Sets a simple item stepper to `quantity` via Increment clicks. */
+export async function setSimpleItemQuantity(
+  page: Page,
+  itemName: string,
+  quantity: number,
+): Promise<void> {
+  if (quantity < 1) {
+    throw new Error(`quantity must be >= 1 (got ${quantity})`);
+  }
+  const row = simpleItemRow(page, itemName);
+  await expect(row).toBeVisible({ timeout: 10_000 });
+  await row.scrollIntoViewIfNeeded();
+  const increment = row.getByLabel("Increment");
+  for (let i = 0; i < quantity; i++) {
+    await increment.click();
+  }
+  await expect(row.locator("span.min-w-6")).toHaveText(String(quantity));
+}
+
+/**
+ * Completes the items builder (fires Mixpanel `items_builder_completed`).
+ * Primary CTA is "Next" on the picker footer.
+ */
+export async function confirmItemsBuilder(page: Page): Promise<void> {
+  await page.getByRole("button", { name: movingLabels.next }).click();
+}

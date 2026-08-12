@@ -3,7 +3,8 @@ Feature: BET-4392 Reference Moving Orders sheet columns by name
 
   The order-write API resolves target columns by header name. Mutating the
   shared Moving Orders sheet requires workers=1 and must not run in parallel
-  with other sheet-writing scenarios. Columns are restored after the scenario.
+  with other sheet-writing scenarios. Columns are restored and the test order
+  row is deleted after the scenario.
 
   Background:
     Given a fresh GGX Moving test run
