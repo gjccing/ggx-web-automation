@@ -1,9 +1,16 @@
-import { expect, type FrameLocator, type Page } from "@playwright/test";
-import { closeTopUpModal } from "../navigation/side-menu.js";
+import { expect, type Frame, type FrameLocator, type Page } from "@playwright/test";
+import { ggxbBaseUrl, type GgxbRegion } from "../../env.js";
+import { closeTopUpModal, ensureEnglish } from "../navigation/side-menu.js";
 import {
   automationCardNickname,
   stripeTestCard,
 } from "../test-data/stripe.js";
+
+export type PaymentMethodCardFields = {
+  number: string;
+  expiryDisplay: string;
+  cvc: string;
+};
 
 function topUpModal(page: Page) {
   return page.getByTestId("top-up-modal-wrapper");
@@ -181,4 +188,143 @@ export async function selectPaymentCardInTopUpModal(
 ): Promise<void> {
   const modal = topUpModal(page);
   await modal.getByText(nickname, { exact: true }).first().click();
+}
+
+export async function navigateToPaymentMethodPage(
+  page: Page,
+  region: GgxbRegion,
+): Promise<void> {
+  if (region === "hk") {
+    await ensureEnglish(page);
+  }
+
+  const base = ggxbBaseUrl(region).replace(/\/$/, "");
+  const nav = page.locator('a[href*="/payment-method"]').first();
+  if (await nav.isVisible().catch(() => false)) {
+    await nav.click();
+  } else {
+    await page.goto(`${base}/payment-method`);
+  }
+
+  await expect(page).toHaveURL(/\/payment-method(?:\/|$|\?|#)/, {
+    timeout: 30_000,
+  });
+  await expect(
+    page.getByRole("heading", { name: /^Payment method$/i }),
+  ).toBeVisible({ timeout: 30_000 });
+}
+
+function addCardSubmitButton(page: Page) {
+  return page.getByRole("button", { name: /^(Add card|Confirm)$/i });
+}
+
+export async function openPaymentMethodAddCardDialog(
+  page: Page,
+): Promise<void> {
+  await page.locator("p").filter({ hasText: /^Add card$/ }).click();
+  await expect(addCardSubmitButton(page)).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByPlaceholder(/Department card/i)).toBeVisible();
+}
+
+async function stripeCardPageFrame(page: Page): Promise<Frame> {
+  let found: Frame | undefined;
+  await expect
+    .poll(
+      async () => {
+        for (const frame of page.frames()) {
+          if (
+            (await frame.getByRole("textbox", { name: /Card number/i }).count()) >
+            0
+          ) {
+            found = frame;
+            return true;
+          }
+        }
+        return false;
+      },
+      { timeout: 15_000 },
+    )
+    .toBe(true);
+
+  if (!found) {
+    throw new Error("Stripe card number field not found");
+  }
+  return found;
+}
+
+export async function fillPaymentMethodAddCardForm(
+  page: Page,
+  card: PaymentMethodCardFields,
+  nickname: string,
+): Promise<void> {
+  const frame = await stripeCardPageFrame(page);
+  await frame.getByRole("textbox", { name: /Card number/i }).fill(card.number);
+  await frame
+    .getByRole("textbox", { name: /Expiration/i })
+    .fill(card.expiryDisplay);
+  await frame
+    .getByRole("textbox", { name: /Security code/i })
+    .fill(card.cvc);
+
+  const nicknameField = page.locator('input[name="nickname"]');
+  if (await nicknameField.isVisible().catch(() => false)) {
+    await nicknameField.fill(nickname);
+  } else {
+    await page.getByPlaceholder(/Department card/i).fill(nickname);
+  }
+
+  await expect(addCardSubmitButton(page)).toBeEnabled({ timeout: 15_000 });
+}
+
+export async function submitPaymentMethodAddCard(page: Page): Promise<void> {
+  await addCardSubmitButton(page).click();
+}
+
+export async function expectPaymentMethodCardNumberError(
+  page: Page,
+): Promise<void> {
+  const frame = await stripeCardPageFrame(page);
+  await expect(
+    frame.getByText(/Your card number is incorrect/i),
+  ).toBeVisible({ timeout: 20_000 });
+  await expect(
+    page.getByText(/Failed to add this card/i),
+  ).toBeVisible({ timeout: 10_000 });
+}
+
+export async function removeSavedCardOnPaymentMethodPageIfPresent(
+  page: Page,
+  nickname: string,
+): Promise<void> {
+  const edit = page.locator(
+    `xpath=.//p[normalize-space()="${nickname}"]/following::a[normalize-space()="Edit"][1]`,
+  );
+  if (await edit.first().isVisible().catch(() => false)) {
+    await edit.first().click();
+    await confirmRemoveCard(page);
+  }
+}
+
+export async function expectSavedCardOnPaymentMethodPage(
+  page: Page,
+  nickname: string,
+): Promise<void> {
+  await expect(page.getByText(/Card added successfully/i)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText(nickname, { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
+}
+
+export async function removeSavedCardOnPaymentMethodPage(
+  page: Page,
+  nickname: string,
+): Promise<void> {
+  const edit = page.locator(
+    `xpath=.//p[normalize-space()="${nickname}"]/following::a[normalize-space()="Edit"][1]`,
+  );
+  await expect(edit.first()).toBeVisible({ timeout: 15_000 });
+  await edit.first().click();
+  await confirmRemoveCard(page);
 }
