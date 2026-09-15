@@ -98,7 +98,7 @@ HK districts: Central & Western, Wan Chai, Eastern, Southern, Yau Tsim Mong, Sha
 
 | Field | Notes |
 |-------|-------|
-| Date | Defaults to **tomorrow**; min date = tomorrow |
+| Date | Empty on load; min selectable date = tomorrow; required before continuing |
 | Time | Required; slots **8:00 am – 11:00 pm** (hourly) |
 
 ### Items to move (step 2)
@@ -181,11 +181,12 @@ No test-account env vars — all flows are anonymous.
 
 ## Known quirks (staging)
 
-- Default move date = tomorrow (not today)
+- Default move date is empty (BET-4436); user must pick a date to continue
 - Van/truck rental on web shows Download App dialog instead of in-browser flow
 - Back button on wizard uses `history.back()` or `router.replace("/")` at entry point
 - Google Tag Manager: `GTM-TZF63DC`
 - Mixpanel (`mixpanel-browser`): disposal submit fires `disposal_only_submitted` with `collection_location`, `preferred_time` (selected time slot), `remarks_length`, `total_photos_uploaded`, `total_items_counted`, `builder_time_secs` (BET-4135 / BET-4097)
+- Mixpanel time units (BET-4142): durations like `popup_time_secs` are elapsed seconds; `moving_form_submitted.time_to_submit` is the submit Unix timestamp in seconds (not a duration)
 - Mixpanel items builder: completing the picker (Next) fires `items_builder_completed`; `total_items_counted` is the **sum of quantities** (BET-4141), not unique SKU count
 - Photo upload blob errors trigger `ImageOutdatedCTADialog` with retry/skip options
 - Header hidden when embedded in GoGoX app WebView

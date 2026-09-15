@@ -64,7 +64,10 @@ async function readUploadedPhotoUrls(page: Page): Promise<string[]> {
   });
 }
 
-export async function selectPhotoOnExtraServices(page: Page): Promise<void> {
+export async function selectPhotoOnExtraServices(
+  page: Page,
+  photoPath: string = fixturePath,
+): Promise<void> {
   await stubDriveThumbnails(page);
 
   const uploadPromise = page.waitForResponse(isTmpUploadResponse, {
@@ -73,9 +76,13 @@ export async function selectPhotoOnExtraServices(page: Page): Promise<void> {
 
   await page
     .locator('input[type="file"][accept*="image"]')
-    .setInputFiles(fixturePath);
+    .setInputFiles(photoPath);
 
   const uploadResponse = await uploadPromise;
+  expect(
+    uploadResponse.status(),
+    `POST /api/upload/tmp returned ${uploadResponse.status()}`,
+  ).toBeLessThan(400);
   expect(uploadResponse.ok()).toBeTruthy();
 
   const body = (await uploadResponse.json()) as {
@@ -110,6 +117,23 @@ export async function selectPhotoOnExtraServices(page: Page): Promise<void> {
 export async function expectPhotoPreviewVisible(page: Page): Promise<void> {
   await expect(page.getByAltText(/^preview-/)).toHaveCount(1);
   await expect(page.getByText(movingLabels.uploadPhotosTitle)).toBeVisible();
+}
+
+export async function expectNoPhotoPreview(page: Page): Promise<void> {
+  await expect(page.getByAltText(/^preview-/)).toHaveCount(0);
+}
+
+export async function expectUploadLoadingHidden(page: Page): Promise<void> {
+  await expect(page.getByText("Loading...")).toBeHidden({ timeout: 30_000 });
+}
+
+export async function selectOverLimitPhotoOnExtraServices(
+  page: Page,
+  photoPath: string,
+): Promise<void> {
+  await page
+    .locator('input[type="file"][accept*="image"]')
+    .setInputFiles(photoPath);
 }
 
 export async function expectTmpUploadCompleted(): Promise<void> {

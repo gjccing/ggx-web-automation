@@ -4,6 +4,8 @@ import {
   couponRedeemSuccessMessage,
 } from "../test-data/bet-4372.js";
 import { couponAppliedSuccessToast } from "../test-data/bet-4403.js";
+import { couponAppliedFeedbackToast } from "../test-data/bet-4451.js";
+import type { CouponAppliedToastWatch } from "../test-data/bet-4451-context.js";
 
 function couponModal(page: Page) {
   return page
@@ -115,4 +117,73 @@ export async function expectCouponAppliedSuccessToast(
   });
   await expect(toast.first()).toBeVisible({ timeout: 15_000 });
   await expect(toast.first()).toHaveText(couponAppliedSuccessToast);
+}
+
+export async function waitForTransportToastsToClear(page: Page): Promise<void> {
+  await expect(page.locator(".Toastify__toast")).toHaveCount(0, {
+    timeout: 20_000,
+  });
+}
+
+function couponAppliedFeedbackToastLocator(page: Page) {
+  return page.locator(".Toastify__toast-body").filter({
+    hasText: couponAppliedFeedbackToast,
+  });
+}
+
+/**
+ * Start watching for `feedback__coupon_applied` before navigating to a new
+ * order — the toast auto-closes, so a late assertion misses it.
+ */
+export function watchCouponAppliedFeedbackToast(
+  page: Page,
+): CouponAppliedToastWatch {
+  let appeared = false;
+  let text: string | undefined;
+  const toast = couponAppliedFeedbackToastLocator(page);
+
+  void toast
+    .first()
+    .waitFor({ state: "visible", timeout: 180_000 })
+    .then(async () => {
+      appeared = true;
+      text = (await toast.first().textContent())?.trim();
+    })
+    .catch(() => {});
+
+  return {
+    appeared: () => appeared,
+    text: () => text,
+  };
+}
+
+export async function expectCouponAppliedFeedbackToastDidNotAppear(
+  page: Page,
+  watch: CouponAppliedToastWatch,
+): Promise<void> {
+  await expect(summaryContainer(page)).toBeVisible({ timeout: 15_000 });
+  await page
+    .getByRole("dialog")
+    .filter({ hasText: /Loading/i })
+    .waitFor({ state: "hidden", timeout: 15_000 })
+    .catch(() => {});
+  await page.waitForTimeout(5_000);
+
+  expect(
+    watch.appeared(),
+    `unexpected feedback__coupon_applied toast: ${watch.text() ?? "(none)"}`,
+  ).toBe(false);
+  await expect(couponAppliedFeedbackToastLocator(page)).toHaveCount(0);
+}
+
+export async function expectNoCouponAppliedOnSummary(
+  page: Page,
+  voucherTitle: string,
+): Promise<void> {
+  const summary = summaryContainer(page);
+  await expect(summary.getByText("Coupon applied", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(summary.getByText(voucherTitle, { exact: true })).toHaveCount(0);
+  await expect(summary.getByText(/Apply to get discount/i)).toBeVisible();
 }

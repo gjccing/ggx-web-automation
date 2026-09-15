@@ -4,6 +4,71 @@ import type { ContactFixture, WaypointFixture } from "../test-data/order-fixture
 import { fillWaypoint } from "./address-picker.js";
 import { movingLabels } from "../labels.js";
 
+/** Calendar-icon date picker used on std / disposal / corporate / overseas. */
+export function moveDatePickerButton(page: Page) {
+  // Scope to the field row (icon + popover), not a page-level flex that also
+  // contains Back / address buttons.
+  return page
+    .getByAltText("calendar")
+    .locator("xpath=ancestor::div[contains(@class,'gap-4')][1]")
+    .getByRole("button")
+    .first();
+}
+
+export async function expectMoveDateEmpty(page: Page): Promise<void> {
+  const button = moveDatePickerButton(page);
+  await expect(button).toBeVisible({ timeout: 15_000 });
+  await expect(button).not.toHaveText(/\d{4}-\d{2}-\d{2}/);
+}
+
+export async function expectSelectDateError(page: Page): Promise<void> {
+  await expect(page.getByText(movingLabels.selectDateError)).toBeVisible({
+    timeout: 5_000,
+  });
+}
+
+export async function clickEnquiryContinue(page: Page): Promise<void> {
+  const next = page.getByRole("button", { name: movingLabels.next });
+  if (await next.isVisible()) {
+    await next.click();
+    return;
+  }
+  await page.getByRole("button", { name: movingLabels.getQuote }).click();
+}
+
+export async function selectMoveDate(page: Page): Promise<void> {
+  const button = moveDatePickerButton(page);
+  if (/\d{4}-\d{2}-\d{2}/.test((await button.textContent()) ?? "")) {
+    return;
+  }
+
+  await button.click();
+
+  const target = new Date();
+  target.setDate(target.getDate() + 1);
+  const dayLabel = String(target.getDate());
+
+  const calendar = page.locator(".rdp-root, [class*='rdp-']").first();
+  await expect(calendar).toBeVisible({ timeout: 5_000 });
+
+  const pickEnabledDay = () =>
+    calendar
+      .locator("button")
+      .filter({ hasText: new RegExp(`^${dayLabel}$`) })
+      .filter({ hasNot: page.locator(".\\!cursor-not-allowed") })
+      .first();
+
+  let dayButton = pickEnabledDay();
+  if (!(await dayButton.isVisible().catch(() => false))) {
+    await calendar.locator("button").filter({ has: page.getByAltText("Chevron Right") }).click();
+    dayButton = pickEnabledDay();
+  }
+
+  await expect(dayButton).toBeVisible({ timeout: 5_000 });
+  await dayButton.click();
+  await expect(button).toHaveText(/\d{4}-\d{2}-\d{2}/);
+}
+
 export async function selectMoveTime(page: Page, timeLabel = "9:00 am"): Promise<void> {
   await page.getByRole("button", { name: movingLabels.time }).click();
   // Click the option button (data-value) — MenuItem wrapper clicks do not always fire onClick.
@@ -46,6 +111,7 @@ export async function fillMoveDetailsStep(
   if (to) {
     await fillWaypoint(page, movingLabels.to, to);
   }
+  await selectMoveDate(page);
   await selectMoveTime(page);
 }
 
@@ -59,6 +125,7 @@ export async function expectMoveDetailsValidationErrors(page: Page): Promise<voi
   await expect(page.getByText(/enter an address|輸入.*地址/i).first()).toBeVisible({
     timeout: 5_000,
   });
+  await expect(page.getByText(movingLabels.selectDateError)).toBeVisible();
   await expect(page.getByText(/select.*time|選擇.*時間/i)).toBeVisible();
 }
 

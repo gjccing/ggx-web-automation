@@ -14,6 +14,7 @@ import {
 import {
   clickWizardNext,
   fillMoveDetailsStep,
+  selectMoveDate,
   selectMoveTime,
 } from "../../lib/pages/wizard.js";
 import { expectUiSnapshot } from "../../lib/visual.js";
@@ -51,6 +52,7 @@ When(
 When("I fill the disposal move details without continuing", async ({ page }) => {
   test.setTimeout(120_000);
   await fillWaypoint(page, movingLabels.from, disposalWaypoint);
+  await selectMoveDate(page);
   await selectMoveTime(page);
 });
 

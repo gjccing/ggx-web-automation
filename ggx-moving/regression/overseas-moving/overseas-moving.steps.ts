@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
-import { fillSinglePageContactAndSubmit } from "../../lib/pages/wizard.js";
+import { fillSinglePageContactAndSubmit, selectMoveDate } from "../../lib/pages/wizard.js";
 import { movingLabels } from "../../lib/labels.js";
 import { fetchOrderRowByOrderId } from "../../lib/sheets/order-sheet.js";
 import {
@@ -42,6 +42,7 @@ When("I submit the overseas moving form without filling required fields", async 
 
 Then("the overseas moving validation errors should be shown", async ({ page }) => {
   await expect(page.getByText(/select a location|選擇地點/i)).toHaveCount(2);
+  await expect(page.getByText(movingLabels.selectDateError)).toBeVisible();
   await expect(page.getByText(/enter.*name|輸入.*名稱/i)).toBeVisible();
   await expect(page.getByText(/enter.*phone|輸入.*電話/i)).toBeVisible();
   await expect(page.getByText(/enter.*email|輸入.*電郵/i)).toBeVisible();
@@ -49,11 +50,13 @@ Then("the overseas moving validation errors should be shown", async ({ page }) =
 
 When("I fill the overseas moving form except contact fields", async ({ page }) => {
   await selectOverseasCountries(page);
+  await selectMoveDate(page);
 });
 
 When("I complete the overseas moving quote flow", async ({ page }) => {
   test.setTimeout(120_000);
   await selectOverseasCountries(page);
+  await selectMoveDate(page);
   movingTestContext.orderId = await fillSinglePageContactAndSubmit(page, contact());
 });
 

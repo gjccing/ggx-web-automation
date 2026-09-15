@@ -115,3 +115,65 @@ export async function expectMixpanelEvent(
   }
   return matched!;
 }
+
+/**
+ * BET-4142: duration properties must be seconds, not milliseconds.
+ *
+ * A short E2E interaction in milliseconds is typically >= 1000; the same span
+ * in seconds stays well below that. When wall-clock elapsedMs is provided and
+ * is at least 2s, the value must also be closer to seconds than milliseconds.
+ */
+export function expectDurationInSeconds(
+  value: unknown,
+  propertyName: string,
+  options?: { elapsedMs?: number; maxSeconds?: number },
+): void {
+  expect(typeof value, `${propertyName} type`).toBe("number");
+  const n = value as number;
+  expect(Number.isFinite(n), propertyName).toBe(true);
+  expect(n, propertyName).toBeGreaterThanOrEqual(0);
+
+  const maxSeconds = options?.maxSeconds ?? 1000;
+  expect(
+    n,
+    `${propertyName}=${n} exceeds ${maxSeconds}s — value is likely milliseconds`,
+  ).toBeLessThan(maxSeconds);
+
+  const elapsedMs = options?.elapsedMs;
+  if (elapsedMs !== undefined && elapsedMs >= 2_000) {
+    expect(
+      n,
+      `${propertyName}=${n} is closer to elapsed milliseconds (${elapsedMs}) than seconds`,
+    ).toBeLessThan(elapsedMs / 2);
+  }
+}
+
+/**
+ * BET-4142: submit-time properties are Unix epoch seconds (not milliseconds,
+ * and not a duration). Mixpanel auto-property `time` uses the same unit.
+ */
+export function expectUnixTimestampSeconds(
+  value: unknown,
+  propertyName: string,
+  options?: { nowMs?: number; maxSkewSeconds?: number },
+): void {
+  expect(typeof value, `${propertyName} type`).toBe("number");
+  const n = value as number;
+  expect(Number.isFinite(n), propertyName).toBe(true);
+
+  expect(
+    n,
+    `${propertyName}=${n} looks like milliseconds (13-digit epoch)`,
+  ).toBeLessThan(1e11);
+  expect(
+    n,
+    `${propertyName}=${n} is too small to be a Unix timestamp in seconds`,
+  ).toBeGreaterThan(1e9);
+
+  const nowSecs = Math.round((options?.nowMs ?? Date.now()) / 1000);
+  const maxSkew = options?.maxSkewSeconds ?? 5 * 60;
+  expect(
+    Math.abs(n - nowSecs),
+    `${propertyName}=${n} is ${Math.abs(n - nowSecs)}s from now (${nowSecs})`,
+  ).toBeLessThanOrEqual(maxSkew);
+}

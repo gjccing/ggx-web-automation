@@ -1,7 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 import { fillDistrictStreetPair } from "../../lib/pages/address-picker.js";
-import { fillSinglePageContactAndSubmit } from "../../lib/pages/wizard.js";
+import {
+  fillSinglePageContactAndSubmit,
+  selectMoveDate,
+} from "../../lib/pages/wizard.js";
 import { movingLabels } from "../../lib/labels.js";
 import { fetchOrderRowByOrderId } from "../../lib/sheets/order-sheet.js";
 import {
@@ -26,6 +29,7 @@ When("I submit the corporate moving form without filling required fields", async
 
 Then("the corporate moving validation errors should be shown", async ({ page }) => {
   await expect(page.getByText(/enter the district.*street address|輸入.*地區.*地址/i)).toHaveCount(2);
+  await expect(page.getByText(movingLabels.selectDateError)).toBeVisible();
   await expect(page.getByText(/enter.*name|輸入.*名稱/i)).toBeVisible();
   await expect(page.getByText(/enter.*phone|輸入.*電話/i)).toBeVisible();
   await expect(page.getByText(/enter.*email|輸入.*電郵/i)).toBeVisible();
@@ -34,6 +38,7 @@ Then("the corporate moving validation errors should be shown", async ({ page }) 
 When("I fill the corporate moving form except contact fields", async ({ page }) => {
   await fillDistrictStreetPair(page, 0, corporateAddresses.from);
   await fillDistrictStreetPair(page, 1, corporateAddresses.to);
+  await selectMoveDate(page);
 });
 
 When("I complete the corporate moving quote flow", async ({ page }) => {
@@ -41,6 +46,7 @@ When("I complete the corporate moving quote flow", async ({ page }) => {
   test.setTimeout(120_000);
   await fillDistrictStreetPair(page, 0, corporateAddresses.from);
   await fillDistrictStreetPair(page, 1, corporateAddresses.to);
+  await selectMoveDate(page);
   movingTestContext.orderId = await fillSinglePageContactAndSubmit(page, contact());
 });
 

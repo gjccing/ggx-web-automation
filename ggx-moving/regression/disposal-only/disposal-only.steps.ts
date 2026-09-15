@@ -6,6 +6,7 @@ import {
   expectMoveDetailsValidationErrors,
   fillFinalDetailsAndSubmit,
   proceedThroughItemsAndExtras,
+  selectMoveDate,
   selectMoveTime,
 } from "../../lib/pages/wizard.js";
 import { movingLabels } from "../../lib/labels.js";
@@ -37,6 +38,7 @@ Then("the disposal details validation errors should be shown", async ({ page }) 
 
 When("I fill the disposal moving move details step", async ({ page }) => {
   await fillWaypoint(page, movingLabels.from, disposalWaypoint);
+  await selectMoveDate(page);
   await selectMoveTime(page);
   await clickWizardNext(page);
   await expect(page).toHaveURL(/items-to-move/);
@@ -45,6 +47,7 @@ When("I fill the disposal moving move details step", async ({ page }) => {
 When("I complete the disposal only quote flow", async ({ page }) => {
   test.setTimeout(180_000);
   await fillWaypoint(page, movingLabels.from, disposalWaypoint);
+  await selectMoveDate(page);
   await selectMoveTime(page);
   await clickWizardNext(page);
   await proceedThroughItemsAndExtras(page);

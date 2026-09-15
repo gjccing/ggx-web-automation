@@ -43,6 +43,30 @@ export async function openHomepage(
   ).toBeVisible();
 }
 
+/** Land on a locale URL without clearing storage or reloading (URL vs localStorage). */
+export async function enterHomepageViaLocaleUrl(
+  page: Page,
+  locale: GgxMovingLocale,
+): Promise<void> {
+  await openHomepage(page, locale, "", { clearSession: false });
+}
+
+export async function expectStoredLocale(
+  page: Page,
+  locale: GgxMovingLocale,
+): Promise<void> {
+  await expect
+    .poll(async () => page.evaluate(() => localStorage.getItem("locale")))
+    .toBe(locale);
+}
+
+export async function expectUrlLocale(
+  page: Page,
+  locale: GgxMovingLocale,
+): Promise<void> {
+  await expect(page).toHaveURL(new RegExp(`/${locale}(/|\\?|$)`));
+}
+
 export async function selectService(
   page: Page,
   service: "standard" | "corporate" | "van-rental" | "disposal" | "overseas",
@@ -102,6 +126,27 @@ export async function readStandardMovingBody1(page: Page): Promise<string> {
   const body1 = card.locator("div.caption.whitespace-pre-line").first();
   await expect(body1).toBeVisible();
   return (await body1.innerText()).trim();
+}
+
+export function homepageServiceCard(
+  page: Page,
+  service: "standard" | "corporate",
+) {
+  const heading =
+    service === "standard"
+      ? movingLabels.standardMoving
+      : movingLabels.specialMoving;
+  return page
+    .getByRole("heading", { name: heading, level: 2 })
+    .locator("xpath=ancestor::div[contains(@class,'text-dark-100')][1]");
+}
+
+export function homepageServiceTncLink(
+  page: Page,
+  service: "standard" | "corporate",
+  label: string | RegExp,
+) {
+  return homepageServiceCard(page, service).getByRole("link", { name: label });
 }
 
 export async function switchLanguage(

@@ -9,6 +9,7 @@ import { fillWaypoint } from "../lib/pages/address-picker.js";
 import {
   clickWizardNext,
   fillMoveDetailsStep,
+  selectMoveDate,
   selectMoveTime,
 } from "../lib/pages/wizard.js";
 import { movingLabels } from "../lib/labels.js";
@@ -61,6 +62,7 @@ Given(
       await selectService(page, "disposal");
       await clickHomepageCta(page);
       await fillWaypoint(page, movingLabels.from, disposalWaypoint);
+      await selectMoveDate(page);
       await selectMoveTime(page);
     } else {
       throw new Error(`Unsupported service "${service}" — use standard/disposal`);
