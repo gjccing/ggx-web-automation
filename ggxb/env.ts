@@ -60,6 +60,18 @@ export function ggxbTestUser(region: GgxbRegion): {
   return { email, password };
 }
 
+/** HK delivery account for BET-4504 status-time HKT coverage. */
+export function ggxbBet4504TestUser(): { email: string; password: string } {
+  const email = process.env.GGXB_HK_BET_4504_USER_EMAIL;
+  const password = process.env.GGXB_HK_BET_4504_USER_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      "Set GGXB_HK_BET_4504_USER_EMAIL and GGXB_HK_BET_4504_USER_PASSWORD in the repo root .env file",
+    );
+  }
+  return { email, password };
+}
+
 /** Low-wallet HK account for BET-4367 tip insufficient-balance coverage. */
 export function ggxbBet4367TestUser(): { email: string; password: string } {
   const email = process.env.GGXB_HK_BET_4367_USER_EMAIL;
