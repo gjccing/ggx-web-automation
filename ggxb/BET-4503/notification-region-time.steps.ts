@@ -23,6 +23,7 @@ Given(
   "I am logged in to GGXB {string} in English as the BET-4503 user with browser time zone {string}",
   async ({ page }, region: string, timeZone: string) => {
     test.setTimeout(120_000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await overrideBrowserTimeZone(page, timeZone);
     await loginViaUi(page, parseRegion(region), {
       english: true,

@@ -37,6 +37,7 @@ export async function openNotificationPanel(page: Page): Promise<void> {
     await page.getByTestId("navigation-bar-notification-switch").click();
   }
   await expect(title).toBeVisible({ timeout: 15_000 });
+  await expect(panel.locator("li").first()).toBeVisible({ timeout: 20_000 });
 }
 
 export type CreatedOrderNotification = {
@@ -64,7 +65,8 @@ export async function findCreatedOrderNotification(
       .filter({ has: page.getByRole("button", { name: /#[A-Z]{2}\d{7}/ }) })
       .first();
 
-    if (await item.isVisible().catch(() => false)) {
+    if ((await item.count()) > 0) {
+      await item.scrollIntoViewIfNeeded();
       const orderButton = item.getByRole("button", { name: /#[A-Z]{2}\d{7}/ });
       const orderId = ((await orderButton.innerText()) ?? "").replace("#", "").trim();
       const timeText = (
@@ -73,9 +75,12 @@ export async function findCreatedOrderNotification(
       return { orderId, timeText };
     }
 
-    if (!(await loadMore.isVisible().catch(() => false))) break;
+    if ((await loadMore.count()) === 0) break;
+    await loadMore.scrollIntoViewIfNeeded();
     await loadMore.click();
-    await page.waitForTimeout(1_000);
+    await expect(panel.locator("li").nth(pageIndex * 8 + 8)).toBeVisible({
+      timeout: 15_000,
+    }).catch(() => {});
   }
 
   throw new Error(
