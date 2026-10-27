@@ -12,8 +12,9 @@ GoGoX B2B business portal — staging automation target for `gogovan/b2b-website
 | Base URL env (per region) | `GGXB_HK_BASE_URL`, `GGXB_SG_BASE_URL` |
 | B2B test account env | `GGXB_{HK\|SG}_TEST_USER_EMAIL`, `GGXB_{HK\|SG}_TEST_USER_PASSWORD` |
 | BET-4367 low-wallet HK account | `GGXB_HK_BET_4367_USER_EMAIL`, `GGXB_HK_BET_4367_USER_PASSWORD` |
-| BET-4481 assigned-driver HK account | `GGXB_HK_BET_4481_USER_EMAIL`, `GGXB_HK_BET_4481_USER_PASSWORD` |
+| BET-4481 HK account | `GGXB_HK_BET_4481_USER_EMAIL`, `GGXB_HK_BET_4481_USER_PASSWORD` |
 | Driver app test account env | `GGXB_{HK\|SG}_DA_USER_PHONE`, `GGXB_{HK\|SG}_DA_USER_PASSWORD` |
+| Transport driver (van d2) | `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PHONE`, `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PASSWORD` |
 | GitHub repo | `gogovan/b2b-website` |
 | GitHub URL | `https://github.com/gogovan/b2b-website` |
 | Jira project key | `BET` |
@@ -35,11 +36,17 @@ GGXB_HK_TEST_USER_PASSWORD=
 GGXB_SG_TEST_USER_EMAIL=
 GGXB_SG_TEST_USER_PASSWORD=
 
-# Driver app test accounts
+# Driver app test accounts (delivery DA)
 GGXB_HK_DA_USER_PHONE=
 GGXB_HK_DA_USER_PASSWORD=
 GGXB_SG_DA_USER_PHONE=
 GGXB_SG_DA_USER_PASSWORD=
+
+# Transport driver (van d2). BET-4481 HK run needs the HK pair.
+GGXB_HK_TRANSPORT_DRIVER_PHONE=
+GGXB_HK_TRANSPORT_DRIVER_PASSWORD=
+GGXB_SG_TRANSPORT_DRIVER_PHONE=
+GGXB_SG_TRANSPORT_DRIVER_PASSWORD=
 ```
 
 `GGXB_BASE_URL` remains supported as a legacy HK alias when `GGXB_HK_BASE_URL` is unset. Credential values are secrets — keep them in `.env` only.

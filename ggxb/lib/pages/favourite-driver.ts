@@ -1,9 +1,5 @@
 import { expect, type Page } from "@playwright/test";
 import { ggxbBaseUrl } from "../../env.js";
-import {
-  changeOrderStatusFilter,
-  navigateToTransportOrderManagement,
-} from "./order-management-download.js";
 
 /** en-HK copy for `notification__name_was_added_to_favourites`. */
 export const FAVOURITED_SUCCESS_MESSAGE = "Added to Favourite drivers!";
@@ -51,53 +47,27 @@ async function waitForHeartState(
 }
 
 /**
- * On transport order management, open the first Active order whose driver
- * column shows an assigned driver.
+ * Open one transport order detail and wait until its assigned-driver heart
+ * has settled (favourited or not).
  */
-export async function openTransportOrderWithAssignedDriver(
+export async function openTransportOrderByNid(
   page: Page,
+  orderId: string,
 ): Promise<void> {
-  await navigateToTransportOrderManagement(page, "hk");
-  await changeOrderStatusFilter(
-    page,
-    "van-order-status-filter-dropdown",
-    "Active",
-  );
-
-  const loadingDialog = page.getByRole("dialog").filter({ hasText: /Loading/i });
-  if (await loadingDialog.isVisible().catch(() => false)) {
-    await expect(loadingDialog).toBeHidden({ timeout: 30_000 });
-  }
-
-  const rows = page.locator('[data-testid^="table-row-"]');
-  await expect(rows.first()).toBeVisible({ timeout: 30_000 });
-
-  const count = await rows.count();
-  let orderId = "";
-  for (let index = 0; index < count; index += 1) {
-    const row = rows.nth(index);
-    const driverText = (await row.locator("td").nth(6).innerText()).trim();
-    if (!driverText || driverText === "-" || driverText.startsWith("-\n")) {
-      continue;
-    }
-    const testId = (await row.getAttribute("data-testid")) ?? "";
-    orderId = testId.replace("table-row-", "");
-    if (orderId) break;
-  }
-
-  if (!orderId) {
-    throw new Error(
-      "No assigned driver to favourite on the transport order management page",
-    );
-  }
-
   const base = ggxbBaseUrl("hk").replace(/\/$/, "");
+  const target = `${base}/orders/${orderId}`;
   const favouriteList = page.waitForResponse(
     (response) =>
       response.url().includes("/driver_interactions/favourite_drivers") &&
       response.request().method() === "GET",
+    { timeout: 30_000 },
   );
-  await page.goto(`${base}/orders/${orderId}`);
+  const current = page.url().split("?")[0].replace(/\/$/, "");
+  if (current === target) {
+    await page.reload();
+  } else {
+    await page.goto(target);
+  }
   const name = driverDetailName(page);
   await expect(name).toBeVisible({ timeout: 30_000 });
   const driverName = (await name.innerText())

@@ -60,7 +60,7 @@ export function ggxbTestUser(region: GgxbRegion): {
   return { email, password };
 }
 
-/** HK account with an assigned transport driver for BET-4481 favourite-status coverage. */
+/** HK B2B account that places the transport order for BET-4481. */
 export function ggxbBet4481TestUser(): { email: string; password: string } {
   const email = process.env.GGXB_HK_BET_4481_USER_EMAIL;
   const password = process.env.GGXB_HK_BET_4481_USER_PASSWORD;
@@ -100,6 +100,36 @@ export function ggxbDaUser(region: GgxbRegion): {
   password: string;
 } {
   const keys = DA_USER_ENV[region];
+  const phone = process.env[keys.phone];
+  const password = process.env[keys.password];
+  if (!phone || !password) {
+    throw new Error(
+      `Set ${keys.phone} and ${keys.password} in the repo root .env file`,
+    );
+  }
+  return { phone, password };
+}
+
+const TRANSPORT_DRIVER_ENV: Record<
+  GgxbRegion,
+  { phone: string; password: string }
+> = {
+  hk: {
+    phone: "GGXB_HK_TRANSPORT_DRIVER_PHONE",
+    password: "GGXB_HK_TRANSPORT_DRIVER_PASSWORD",
+  },
+  sg: {
+    phone: "GGXB_SG_TRANSPORT_DRIVER_PHONE",
+    password: "GGXB_SG_TRANSPORT_DRIVER_PASSWORD",
+  },
+};
+
+/** Van d2 transport driver. Distinct from the delivery DA account. */
+export function ggxbTransportDriver(region: GgxbRegion): {
+  phone: string;
+  password: string;
+} {
+  const keys = TRANSPORT_DRIVER_ENV[region];
   const phone = process.env[keys.phone];
   const password = process.env[keys.password];
   if (!phone || !password) {
