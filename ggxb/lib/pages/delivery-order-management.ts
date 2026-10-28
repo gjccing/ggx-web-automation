@@ -214,7 +214,7 @@ export async function closeDeliveryOrderDrawerIfOpen(page: Page): Promise<void> 
   for (let i = count - 1; i >= 0; i -= 1) {
     const btn = headerButtons.nth(i);
     const label = ((await btn.textContent()) ?? "").trim();
-    // Skip labeled actions (Print / Share / Cancel / Add tip / …).
+    // Skip labeled actions (Print / Share / Cancel / Add rush order fee / …).
     if (label.length > 0) continue;
     await btn.click({ force: true });
     break;
