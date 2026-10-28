@@ -37,7 +37,9 @@ export async function submitMaxDeliveryTip(
   await input.click();
   await input.fill("100");
 
-  const maxTipError = page.getByText(/Please add maximum|請.*最高|最多/i);
+  const maxTipError = page.getByText(
+    /Please add maximum|急單費金額不可超過/i,
+  );
   if (await maxTipError.isVisible().catch(() => false)) {
     // Cap is below 100 — use the largest allowed preset instead.
     await page.getByTestId("radio-button-50.0-tip").click();

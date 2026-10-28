@@ -5,9 +5,11 @@ import { ensureEnglish } from "./navigation/side-menu.js";
 export async function openLoginPage(
   page: Page,
   region: GgxbRegion,
+  query?: string,
 ): Promise<void> {
   const base = ggxbBaseUrl(region).replace(/\/$/, "");
-  const response = await page.goto(`${base}/login`);
+  const suffix = query ? `?${query}` : "";
+  const response = await page.goto(`${base}/login${suffix}`);
   expect(response, "login navigation should return a response").not.toBeNull();
   expect(response!.ok(), `expected HTTP 2xx for ${base}/login`).toBeTruthy();
   await expect(page.getByTestId("login-form")).toBeVisible();

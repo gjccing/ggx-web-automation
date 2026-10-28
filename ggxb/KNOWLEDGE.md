@@ -39,6 +39,7 @@ HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do
 | B2B Master user | Full nav: home, transport, delivery, billing, profile, users & branches, address book, API dashboard | Credentials: `GGXB_{HK\|SG}_TEST_USER_EMAIL` / `GGXB_{HK\|SG}_TEST_USER_PASSWORD` |
 | B2B Branch / Admin | Wallet, users & branches (repo) | Route `authorize` flags in repo |
 | Driver app user | Accept / complete delivery orders (mobile) | Credentials: `GGXB_{HK\|SG}_DA_USER_PHONE` / `GGXB_{HK\|SG}_DA_USER_PASSWORD` |
+| Transport driver | Claim and confirm van orders on d2 (`pending → picked → active`) | Credentials: `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PHONE` / `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PASSWORD` |
 
 ## Core flows
 
@@ -186,10 +187,18 @@ Quick reference for agents — see **Route sitemap** above for component mapping
 | `GGXB_SG_TEST_USER_PASSWORD` | SG B2B portal login password | placeholder |
 | `GGXB_HK_BET_4367_USER_EMAIL` | HK low-wallet account for BET-4367 tip error | placeholder |
 | `GGXB_HK_BET_4367_USER_PASSWORD` | Password for BET-4367 account | placeholder |
-| `GGXB_HK_DA_USER_PHONE` | HK driver app login phone | placeholder |
-| `GGXB_HK_DA_USER_PASSWORD` | HK driver app login password | placeholder |
-| `GGXB_SG_DA_USER_PHONE` | SG driver app login phone | placeholder |
-| `GGXB_SG_DA_USER_PASSWORD` | SG driver app login password | placeholder |
+| `GGXB_HK_BET_4481_USER_EMAIL` | HK B2B account that places the BET-4481 transport order | placeholder |
+| `GGXB_HK_BET_4481_USER_PASSWORD` | Password for BET-4481 account | placeholder |
+| `GGXB_HK_BET_4504_USER_EMAIL` | HK delivery account for BET-4504 status-time HKT | placeholder |
+| `GGXB_HK_BET_4504_USER_PASSWORD` | Password for BET-4504 account | placeholder |
+| `GGXB_HK_DA_USER_PHONE` | HK delivery driver app login phone | placeholder |
+| `GGXB_HK_DA_USER_PASSWORD` | HK delivery driver app login password | placeholder |
+| `GGXB_SG_DA_USER_PHONE` | SG delivery driver app login phone | placeholder |
+| `GGXB_SG_DA_USER_PASSWORD` | SG delivery driver app login password | placeholder |
+| `GGXB_HK_TRANSPORT_DRIVER_PHONE` | HK van d2 transport driver phone | placeholder |
+| `GGXB_HK_TRANSPORT_DRIVER_PASSWORD` | HK van d2 transport driver password | placeholder |
+| `GGXB_SG_TRANSPORT_DRIVER_PHONE` | SG van d2 transport driver phone | placeholder |
+| `GGXB_SG_TRANSPORT_DRIVER_PASSWORD` | SG van d2 transport driver password | placeholder |
 
 **Secrets** (passwords, real emails/phones): store in `.env` only — never commit real values to `.env.example` or this file.
 
@@ -230,4 +239,6 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 - `regression/smoke/index.feature` — per-region homepage smoke (`@hk`, `@sg`)
 - `regression/smoke/visual.feature` — `@visual` full-page screenshots: HK public auth (login/signup/recovery), HK authenticated key pages (home, van, delivery, billing, profile), HK transport place-order wizard steps (route / order details / summary, **no Place order**), HK completed transport + delivery order detail, SG login + van order/orders. Baselines in `ggxb/snapshots/`. List pages (`/orders`, `/delivery/order-management`, `/billing-history`) pin date range to **2026-01-01 ~ 2026-06-30**. Wallet / payment Credit / notification / date / map / quote / order-id widgets are masked. Update with `npm run test:e2e:update-snapshots -- --project=ggxb --grep @visual`.
 - `BET-4367/` — DP tip when total exceeds wallet shows `error_insufficient_balance_with_tip` (en-HK / zh-HK). Uses `GGXB_HK_BET_4367_USER_*` against a pending delivery order with wallet holds; run `npm run test:e2e -- --project=ggxb --grep @BET-4367`.
+- `BET-4481/` — Places a minimal HK transport order, then a transport driver claims it (`pending → picked`) and confirms it (`picked → active`) via van d2 `PATCH /order/order_request/{uuid}`. Opens that order and favourites the assigned driver; the heart must already be favourited when "Added to Favourite drivers!" is shown. Uses `GGXB_HK_BET_4481_USER_*` and `GGXB_HK_TRANSPORT_DRIVER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4481`. Driver helper: `ggxb/lib/api/da/transport.ts`.
+- `BET-4504/` — Delivery order management Status time includes HKT when the browser time zone is Asia/Tokyo, matching Shipper on the same row (order `#izoLSg`). Uses `GGXB_HK_BET_4504_USER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4504`.
 - `BET-4401/` — Keep DP order detail open (no reload). After DA accept, detail status must update via websocket; Cancel shows call-CS instruction. Cleanup: DA `courier_pick_up` then `/tasks` `complete`, asserting live status each time. Run `npm run test:e2e -- --project=ggxb --grep @BET-4401`. DA helpers: `ggxb/lib/api/da/delivery.ts`.

@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import type { TransportWaypointFixture } from "../test-data/transport-order.js";
+import { dismissNotifications } from "./notifications.js";
 
 export const transportOrderLabels = {
   nextButton: /^Next$|^下一步$/,
@@ -13,13 +14,30 @@ async function addressInput(page: Page, waypoint: "from" | "to") {
   return page.getByPlaceholder(/Address|地址/).nth(index);
 }
 
+async function dismissAddressSuggestions(page: Page): Promise<void> {
+  await page.keyboard.press("Escape");
+  await page
+    .locator('[role="listbox"]')
+    .first()
+    .waitFor({ state: "hidden", timeout: 5_000 })
+    .catch(() => {});
+}
+
 export async function setTransportWaypointAddress(
   page: Page,
   waypoint: "from" | "to",
   address: string,
 ): Promise<void> {
   const input = await addressInput(page, waypoint);
-  await input.click();
+  // Saved-address suggestions stay open and cover the next waypoint input.
+  await dismissAddressSuggestions(page);
+  await input.scrollIntoViewIfNeeded();
+  try {
+    await input.click({ timeout: 8_000 });
+  } catch {
+    await dismissAddressSuggestions(page);
+    await input.click({ force: true });
+  }
   await input.fill(address);
 
   const suggestion = page
@@ -30,6 +48,7 @@ export async function setTransportWaypointAddress(
   await suggestion.click();
 
   await expect(input).not.toHaveValue("", { timeout: 15_000 });
+  await dismissAddressSuggestions(page);
 }
 
 export async function fillTransportFromWaypoint(
@@ -114,9 +133,17 @@ export async function proceedToTransportOrderSummary(
   options?: { onOrderDetails?: boolean },
 ): Promise<void> {
   if (!options?.onOrderDetails) {
-    await page.getByRole("button", { name: transportOrderLabels.nextButton }).click();
+    await dismissNotifications(page);
+    const next = page.getByRole("button", { name: transportOrderLabels.nextButton });
+    try {
+      await next.click({ timeout: 8_000 });
+    } catch {
+      await dismissNotifications(page);
+      await next.click({ force: true });
+    }
   }
 
+  await dismissNotifications(page);
   await page
     .getByRole("button", { name: transportOrderLabels.reviewOrderButton })
     .click();
@@ -143,23 +170,19 @@ async function ensureTransportOrderPlaceable(page: Page): Promise<void> {
     return;
   }
 
-  const insufficientWallet = page.getByText(/wallet balance is insufficient/i);
+  // Copy uses non-breaking spaces, so match the error test id.
+  const insufficientWallet = page.getByTestId("payment-method-error-msg");
   if (await insufficientWallet.isVisible().catch(() => false)) {
-    const payWithSection = page
-      .getByTestId("vanbooking-sidebar-summary-container")
-      .or(page.locator('[data-testid="main-content"]'));
-    const cardOption = payWithSection
-      .getByText(/⋅⋅⋅⋅|Visa|Mastercard|Card/i)
-      .first();
-    if (await cardOption.isVisible().catch(() => false)) {
-      await cardOption.click();
-    } else {
-      await page.getByText(/^Wallet$/i).first().click();
-      await page
-        .getByText(/⋅⋅⋅⋅|Visa|Mastercard/i)
-        .first()
-        .click();
-    }
+    await page.getByText(/^Wallet$/).first().click();
+    const modal = page.getByTestId("pay-with-modal-wrapper");
+    await expect(modal).toBeVisible({ timeout: 15_000 });
+    // The card radio is display:none, so Playwright will not click it.
+    await modal.locator('input[type="radio"]').first().evaluate((el) => {
+      if (el instanceof HTMLInputElement) el.click();
+    });
+    await modal.getByRole("button", { name: /^(OK|Confirm)$/ }).click();
+    await expect(modal).toBeHidden({ timeout: 15_000 });
+    await expect(insufficientWallet).toBeHidden({ timeout: 15_000 });
   }
 
   await expect(placeBtn).toBeEnabled({ timeout: 15_000 });
