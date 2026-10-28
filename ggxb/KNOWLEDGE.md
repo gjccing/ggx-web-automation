@@ -187,6 +187,8 @@ Quick reference for agents — see **Route sitemap** above for component mapping
 | `GGXB_SG_TEST_USER_PASSWORD` | SG B2B portal login password | placeholder |
 | `GGXB_HK_BET_4367_USER_EMAIL` | HK low-wallet account for BET-4367 tip error | placeholder |
 | `GGXB_HK_BET_4367_USER_PASSWORD` | Password for BET-4367 account | placeholder |
+| `GGXB_HK_BET_4503_USER_EMAIL` | HK account for BET-4503 notification timestamps | placeholder |
+| `GGXB_HK_BET_4503_USER_PASSWORD` | Password for BET-4503 account | placeholder |
 | `GGXB_HK_BET_4481_USER_EMAIL` | HK B2B account that places the BET-4481 transport order | placeholder |
 | `GGXB_HK_BET_4481_USER_PASSWORD` | Password for BET-4481 account | placeholder |
 | `GGXB_HK_BET_4504_USER_EMAIL` | HK delivery account for BET-4504 status-time HKT | placeholder |
@@ -242,3 +244,4 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 - `BET-4481/` — Places a minimal HK transport order, then a transport driver claims it (`pending → picked`) and confirms it (`picked → active`) via van d2 `PATCH /order/order_request/{uuid}`. Opens that order and favourites the assigned driver; the heart must already be favourited when "Added to Favourite drivers!" is shown. Uses `GGXB_HK_BET_4481_USER_*` and `GGXB_HK_TRANSPORT_DRIVER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4481`. Driver helper: `ggxb/lib/api/da/transport.ts`.
 - `BET-4504/` — Delivery order management Status time includes HKT when the browser time zone is Asia/Tokyo, matching Shipper on the same row (order `#izoLSg`). Uses `GGXB_HK_BET_4504_USER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4504`.
 - `BET-4401/` — Keep DP order detail open (no reload). After DA accept, detail status must update via websocket; Cancel shows call-CS instruction. Cleanup: DA `courier_pick_up` then `/tasks` `complete`, asserting live status each time. Run `npm run test:e2e -- --project=ggxb --grep @BET-4401`. DA helpers: `ggxb/lib/api/da/delivery.ts`.
+- `BET-4503/` — With the browser in Asia/Tokyo, an "Order has been created" notification time matches the order detail "Order placed" time and includes the HKT suffix. The creation pop-up uses the same timestamp. Uses `GGXB_HK_BET_4503_USER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4503`.
