@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Response } from "@playwright/test";
 import type { GgxbRegion } from "../../env.js";
 import { setListDateRange } from "./date-range-filter.js";
 import {
@@ -42,6 +42,72 @@ export async function openFirstCompletedTransportOrder(
   await orderId.click();
   await expect(page).toHaveURL(/\/orders\/[A-Z]{2}\d{7}/, { timeout: 30_000 });
   await expectOnTransportOrderDetail(page);
+}
+
+export type TransportOrderIdentity = {
+  /** Numeric order_request id required by the d2 status body. */
+  id: number;
+  uuid: string;
+  /** Public id shown in the header, e.g. HK1234567. */
+  nid: string;
+};
+
+function isB2bTransportOrderDetail(response: Response): boolean {
+  if (response.request().method() !== "GET" || !response.ok()) return false;
+  let pathname: string;
+  try {
+    pathname = new URL(response.url()).pathname.replace(/\/$/, "");
+  } catch {
+    return false;
+  }
+  const match = pathname.match(/\/b2b\/order_requests\/([^/]+)$/);
+  if (!match) return false;
+  return !["index", "pdf", "xlsx", "report_data"].includes(match[1]);
+}
+
+function unwrapOrder(json: unknown): Record<string, unknown> {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return {};
+  const record = json as Record<string, unknown>;
+  // Detail payload is flat: id, nid, uuid, plus a nested `order` for the driver.
+  if (typeof record.uuid === "string" || typeof record.nid === "string") {
+    return record;
+  }
+  for (const key of ["data", "order_request", "order"]) {
+    const nested = record[key];
+    if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+      const inner = nested as Record<string, unknown>;
+      if ("uuid" in inner || "nid" in inner || "id" in inner) return inner;
+    }
+  }
+  return record;
+}
+
+/**
+ * The header only shows the public nid. Reload the open detail so the B2B
+ * order payload supplies the numeric id and uuid the driver PATCH needs.
+ */
+export async function readTransportOrderIdentity(
+  page: Page,
+): Promise<TransportOrderIdentity> {
+  const headerNid = await getTransportOrderId(page);
+  const responsePromise = page.waitForResponse(isB2bTransportOrderDetail, {
+    timeout: 30_000,
+  });
+  await page.reload();
+  const response = await responsePromise;
+  const data = unwrapOrder(await response.json());
+  const id = Number(data.id);
+  const uuid = typeof data.uuid === "string" ? data.uuid : "";
+  const nid =
+    typeof data.nid === "string" && data.nid.length > 0 ? data.nid : headerNid;
+
+  if (!Number.isInteger(id) || id <= 0 || !uuid) {
+    throw new Error(
+      `Transport order ${headerNid} detail missing numeric id or uuid`,
+    );
+  }
+
+  return { id, uuid, nid };
 }
 
 export async function getTransportOrderId(page: Page): Promise<string> {
