@@ -4,10 +4,11 @@ export type Bet4367Locale = "en-HK" | "zh-HK";
 export const bet4367InsufficientBalanceWithTip: Record<Bet4367Locale, string> =
   {
     "en-HK":
-      "Insufficient balance. The tip amount causes your total to exceed your wallet balance. Please adjust the tip or add funds.",
-    "zh-HK": "餘額不足，貼士金額導致總額超出錢包餘額，請調整貼士或增值。",
+      "Insufficient balance. The rush order fee amount causes your total to exceed your wallet balance. Please adjust the rush order fee or add funds.",
+    "zh-HK": "餘額不足，急單費金額導致總額超出錢包餘額，請調整急單費或增值。",
   };
 
+/** `add_tip_courier`, `common__driver_bonus`, `button__save` in en-HK / zh-HK. */
 export const bet4367TipLabels: Record<
   Bet4367Locale,
   {
@@ -17,13 +18,13 @@ export const bet4367TipLabels: Record<
   }
 > = {
   "en-HK": {
-    addTip: /^Add tip$/i,
-    modalHeader: /^Driver tip$/i,
+    addTip: /^Add rush order fee$/i,
+    modalHeader: /^Driver rush order fee$/i,
     save: /^Save$/i,
   },
   "zh-HK": {
-    addTip: /^給速遞員貼士$/,
-    modalHeader: /^司機急車費$/,
+    addTip: /^給速遞員急單費$/,
+    modalHeader: /^司機急單費$/,
     save: /^儲存$/,
   },
 };
