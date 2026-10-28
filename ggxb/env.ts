@@ -60,6 +60,18 @@ export function ggxbTestUser(region: GgxbRegion): {
   return { email, password };
 }
 
+/** HK account used by BET-4485 to place two transport orders in one browser. */
+export function ggxbBet4485TestUser(): { email: string; password: string } {
+  const email = process.env.GGXB_HK_BET_4485_USER_EMAIL;
+  const password = process.env.GGXB_HK_BET_4485_USER_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      "Set GGXB_HK_BET_4485_USER_EMAIL and GGXB_HK_BET_4485_USER_PASSWORD in the repo root .env file",
+    );
+  }
+  return { email, password };
+}
+
 /** HK B2B account that places the transport order for BET-4481. */
 export function ggxbBet4481TestUser(): { email: string; password: string } {
   const email = process.env.GGXB_HK_BET_4481_USER_EMAIL;
