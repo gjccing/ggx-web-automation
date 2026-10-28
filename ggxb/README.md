@@ -13,6 +13,7 @@ GoGoX B2B business portal — staging automation target for `gogovan/b2b-website
 | B2B test account env | `GGXB_{HK\|SG}_TEST_USER_EMAIL`, `GGXB_{HK\|SG}_TEST_USER_PASSWORD` |
 | BET-4367 low-wallet HK account | `GGXB_HK_BET_4367_USER_EMAIL`, `GGXB_HK_BET_4367_USER_PASSWORD` |
 | BET-4481 HK account | `GGXB_HK_BET_4481_USER_EMAIL`, `GGXB_HK_BET_4481_USER_PASSWORD` |
+| BET-4504 delivery status-time HK account | `GGXB_HK_BET_4504_USER_EMAIL`, `GGXB_HK_BET_4504_USER_PASSWORD` |
 | Driver app test account env | `GGXB_{HK\|SG}_DA_USER_PHONE`, `GGXB_{HK\|SG}_DA_USER_PASSWORD` |
 | Transport driver (van d2) | `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PHONE`, `GGXB_{HK\|SG}_TRANSPORT_DRIVER_PASSWORD` |
 | GitHub repo | `gogovan/b2b-website` |

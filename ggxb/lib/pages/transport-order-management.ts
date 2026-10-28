@@ -1,6 +1,10 @@
 import { expect, type Page, type Response } from "@playwright/test";
+import type { GgxbRegion } from "../../env.js";
 import { setListDateRange } from "./date-range-filter.js";
-import { changeOrderStatusFilter } from "./order-management-download.js";
+import {
+  changeOrderStatusFilter,
+  navigateToTransportOrderManagement,
+} from "./order-management-download.js";
 
 function orderDetailDrawer(page: Page) {
   return page.getByTestId("order-detail-drawer");
@@ -159,6 +163,82 @@ export async function getTransportPaymentMethod(page: Page): Promise<string> {
   const value = label.locator("xpath=following-sibling::p[1]");
   await expect(value).toBeVisible();
   return (await value.textContent())?.trim() ?? "";
+}
+
+/** "Cancel order?" → header.replace(/\W/g, '-') + "-modal-wrapper". */
+export const transportCancelConfirmationTestId = "cancel-order--modal-wrapper";
+
+export function transportCancelConfirmation(page: Page) {
+  return page.getByTestId(transportCancelConfirmationTestId);
+}
+
+/**
+ * Leave the post-place detail view, then open the same pending order from
+ * Order management. Returns when the drawer body has finished its first load.
+ */
+async function closeTransportOrderDrawer(page: Page): Promise<void> {
+  const heading = orderHeader(page);
+  if (!(await heading.isVisible().catch(() => false))) return;
+
+  const header = heading.locator("xpath=ancestor::div[1]");
+  await header.locator("svg").last().click({ force: true });
+  await expect(heading).toBeHidden({ timeout: 10_000 });
+}
+
+export async function reopenPendingTransportOrder(
+  page: Page,
+  region: GgxbRegion,
+  orderId: string,
+): Promise<{ drawerOpenedAt: number; contentReadyAt: number }> {
+  await closeTransportOrderDrawer(page);
+  await navigateToTransportOrderManagement(page, region);
+  await changeOrderStatusFilter(
+    page,
+    "van-order-status-filter-dropdown",
+    "Pending",
+  );
+
+  const search = page.getByPlaceholder(/Name, phone number, address, order/i);
+  await search.fill(orderId);
+  await page.getByRole("button", { name: /^Search$/ }).click();
+
+  const orderLink = page.getByText(new RegExp(`#${orderId}\\b`)).first();
+  await expect(orderLink).toBeVisible({ timeout: 30_000 });
+
+  const drawerOpenedAt = Date.now();
+  await orderLink.click();
+  await expect(orderHeader(page).filter({ hasText: `#${orderId}` })).toBeVisible({
+    timeout: 30_000,
+  });
+  const contentReadyAt = Date.now();
+  await expect(orderDetailDrawer(page).locator("img.rotating")).toHaveCount(0);
+  return { drawerOpenedAt, contentReadyAt };
+}
+
+export async function openTransportCancelConfirmation(page: Page): Promise<void> {
+  await orderDetailDrawer(page).locator('[data-cy="cancel-order-btn"]').click();
+  await expect(transportCancelConfirmation(page)).toBeVisible({ timeout: 15_000 });
+  await expect(
+    transportCancelConfirmation(page).getByText("Cancel order?", { exact: true }),
+  ).toBeVisible();
+}
+
+export async function expectTransportCancelConfirmationOpen(
+  page: Page,
+): Promise<void> {
+  const confirmation = transportCancelConfirmation(page);
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.getByText("Cancel order?", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-cy="confirm-canel-btn"]')).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Keep searching$/ })).toBeVisible();
+}
+
+export async function expectTransportDrawerBodyVisible(
+  page: Page,
+  orderId: string,
+): Promise<void> {
+  await expect(orderHeader(page).filter({ hasText: `#${orderId}` })).toBeVisible();
+  await expect(orderDetailDrawer(page).locator("img.rotating")).toHaveCount(0);
 }
 
 export async function cancelPlacedTransportOrder(page: Page): Promise<void> {
