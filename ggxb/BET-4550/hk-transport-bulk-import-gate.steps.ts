@@ -58,7 +58,7 @@ When(
   },
 );
 
-Then("the transport bulk import nav item is hidden", async ({ page }) => {
+Then("the transport bulk import nav item disappears", async ({ page }) => {
   await expect(transportBulkImportLink(page)).toHaveCount(0);
 });
 
