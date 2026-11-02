@@ -98,7 +98,7 @@ HK supports two UI languages via an in-app toggle (繁體中文 / English). **Do
 |------|-----------|-------|
 | `/van/order` | `van-booking/order/order.component.js` | `/van` index redirect; default post-login for SG |
 | `/van/favorite-drivers` | `van-booking/favorite-drivers/favorite-drivers.component.js` | |
-| `/van/bulk-import` | `van-booking/bulk-import/bulk-import.component.js` | **VN only**, or **HK org id = 1890**; else redirect `/van/order` |
+| `/van/bulk-import` | `van-booking/bulk-import/bulk-import.component.js` | VN always. SG never. HK when `transport_bulk_import` is on, or org id 1890 while the flag is off. Otherwise redirect `/van/order`. Staging may still be the old gate until `feat/BET_4516` is deployed. |
 | `/orders` | `order-management/order-management.component.js` | Van order list |
 | `/orders/:id` | `order-management/order-management.component.js` | Single van order |
 | `/orders/view` | — | Redirect → `/orders` |
@@ -223,7 +223,7 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 - Page title may lag behind route (e.g. signup/recovery still show "Sign in")
 - `/home` access depends on `homepage_access` feature flag (HK test account has access; SG redirects to `/van/order`)
 - Delivery and Shopify routes gated by feature flags (`gogodelivery_ggb`, `shopify_integration`)
-- `/van/bulk-import` only for VN or HK org id 1890 — other accounts redirect to `/van/order` (may render blank if navigated directly)
+- `/van/bulk-import` (BET-4550): VN always; SG hidden; HK when `transport_bulk_import` is on, plus HK org id 1890 while the flag is off. Other HK accounts redirect to `/van/order`. Local check needs `ENABLE_DEBUG=true` so the debug menu can toggle `TransportBulkImport`. Staging may still use the old VN-or-1890 gate until `feat/BET_4516` is deployed.
 - `/delivery/integration` immediately redirects to `/developer/dashboard` (repo `onEnter`)
 - `/delivery/bulk-import` may show a one-time modal ("New Bulk Import Template"); dismiss with Escape
 - Wallet/billing nav differs by payment type (monthly settlement vs credit card); `/wallet` vs `/billing-history`
@@ -240,6 +240,7 @@ Helper: `ggxb/env.ts` — `ggxbBaseUrl('hk' | 'sg')`.
 
 - `regression/smoke/index.feature` — per-region homepage smoke (`@hk`, `@sg`)
 - `regression/smoke/visual.feature` — `@visual` full-page screenshots: HK public auth (login/signup/recovery), HK authenticated key pages (home, van, delivery, billing, profile), HK transport place-order wizard steps (route / order details / summary, **no Place order**), HK completed transport + delivery order detail, SG login + van order/orders. Baselines in `ggxb/snapshots/`. List pages (`/orders`, `/delivery/order-management`, `/billing-history`) pin date range to **2026-01-01 ~ 2026-06-30**. Wallet / payment Credit / notification / date / map / quote / order-id widgets are masked. Update with `npm run test:e2e:update-snapshots -- --project=ggxb --grep @visual`.
+- `BET-4550/` — HK transport bulk import nav and `/van/bulk-import`. Flag off hides them unless organization id is 1890; flag on shows the nav and keeps the download-template page open. Needs local `feat/BET_4516` with `ENABLE_DEBUG=true` and `GGXB_HK_*` test user. Run `npm run test:e2e -- --project=ggxb --grep @BET-4550`.
 - `BET-4367/` — DP tip when total exceeds wallet shows `error_insufficient_balance_with_tip` (en-HK / zh-HK). Uses `GGXB_HK_BET_4367_USER_*` against a pending delivery order with wallet holds; run `npm run test:e2e -- --project=ggxb --grep @BET-4367`.
 - `BET-4481/` — Places a minimal HK transport order, then a transport driver claims it (`pending → picked`) and confirms it (`picked → active`) via van d2 `PATCH /order/order_request/{uuid}`. Opens that order and favourites the assigned driver; the heart must already be favourited when "Added to Favourite drivers!" is shown. Uses `GGXB_HK_BET_4481_USER_*` and `GGXB_HK_TRANSPORT_DRIVER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4481`. Driver helper: `ggxb/lib/api/da/transport.ts`.
 - `BET-4504/` — Delivery order management Status time includes HKT when the browser time zone is Asia/Tokyo, matching Shipper on the same row (order `#izoLSg`). Uses `GGXB_HK_BET_4504_USER_*`. Run `npm run test:e2e -- --project=ggxb --grep @BET-4504`.
